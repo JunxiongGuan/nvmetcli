@@ -1,0 +1,8 @@
+*.swp
+*.swo
+build-stamp
+build/*
+dist/*
+doc/*
+*.pyc
+*.pyc

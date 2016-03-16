@@ -1,0 +1,21 @@
+{
+  "subsystems": [
+    {
+      "namespaces": [
+        {
+          "device": {
+            "path": "/dev/ram0"
+          }, 
+          "nsid": 2
+        }, 
+        {
+          "device": {
+            "path": "/dev/nvme0n1"
+          }, 
+          "nsid": 1
+        }
+      ], 
+      "nqn": "nqn.2014-08.org.nvmexpress:NVMf:uuid:77dca664-0d3e-4f67-b8b2-04c70e3f991d"
+    }
+  ]
+}

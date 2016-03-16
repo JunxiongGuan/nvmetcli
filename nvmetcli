@@ -1,0 +1,246 @@
+#!/usr/bin/python
+
+'''
+Frontend to access to the NVMe target configfs hierarchy
+
+Copyright (c) 2016 by HGST, a Western Digital Company.
+
+Licensed under the Apache License, Version 2.0 (the "License"); you may
+not use this file except in compliance with the License. You may obtain
+a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+License for the specific language governing permissions and limitations
+under the License.
+'''
+
+import sys
+import configshell_fb as configshell
+import nvmet.nvme as nvme
+
+DEFAULT_SAVE_FILE = "/etc/nvmet.json"
+
+
+class UIRootNode(configshell.node.ConfigNode):
+    def __init__(self, shell):
+        configshell.node.ConfigNode.__init__(self, '/', shell=shell)
+        self.cfnode = nvme.Root()
+        self.refresh()
+
+    def refresh(self):
+        self._children = set([])
+        UISubsystemsNode(self)
+
+    def ui_command_saveconfig(self, savefile=None):
+        '''
+        Saves the current configuration to a file so that it can be restored
+        on next boot.
+        '''
+        self.cfnode.save_to_file(savefile)
+
+    def ui_command_restoreconfig(self, savefile=None, clear_existing=False):
+        '''
+        Restores configuration from a file.
+        '''
+        errors = self.cfnode.restore_from_file(savefile, clear_existing)
+        self.refresh()
+
+        if errors:
+            raise configshell.ExecutionError(
+                "Configuration restored, %d errors:\n%s" %
+                (len(errors), "\n".join(errors)))
+
+
+class UISubsystemsNode(configshell.node.ConfigNode):
+    def __init__(self, parent):
+        configshell.node.ConfigNode.__init__(self, 'subsystems', parent)
+        self._parent = parent
+        self.refresh()
+
+    def refresh(self):
+        self._children = set([])
+        for subsys in self._parent.cfnode.subsystems:
+            UISubsystemNode(self, subsys)
+
+    def ui_command_create(self, nqn=None):
+        '''
+        Creates a new target. If I{nqn} is ommited, then the new Subsystem
+        will be created using a randomly generated NQN.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        subsystem = nvme.Subsystem(nqn, mode='create')
+        UISubsystemNode(self, subsystem)
+
+    def ui_command_delete(self, nqn):
+        '''
+        Recursively deletes the subsystem with the specified I{nqn}, and all
+        objects hanging under it.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        subsystem = nvme.Subsystem(nqn, mode='lookup')
+        subsystem.delete()
+        self.refresh()
+
+
+class UISubsystemNode(configshell.node.ConfigNode):
+    def __init__(self, parent, cfnode):
+        configshell.node.ConfigNode.__init__(self, cfnode.nqn, parent)
+        self.cfnode = cfnode
+        self.refresh()
+
+    def refresh(self):
+        self._children = set([])
+        UINamespacesNode(self)
+
+
+class UINamespacesNode(configshell.node.ConfigNode):
+    def __init__(self, parent):
+        configshell.node.ConfigNode.__init__(self, 'namespaces', parent)
+        self._parent = parent
+        self.refresh()
+
+    def refresh(self):
+        self._children = set([])
+        for ns in self._parent.cfnode.namespaces:
+            UINamespaceNode(self, ns)
+
+    def ui_command_create(self, nsid=None):
+        '''
+        Creates a new namespace. If I{nsid} is ommited, then the next
+        available namespace id will be used.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        namespace = nvme.Namespace(self._parent.cfnode, nsid, mode='create')
+        UINamespaceNode(self, namespace)
+
+    def ui_command_delete(self, nsid):
+        '''
+        Recursively deletes the namespace with the specified I{nsid}, and all
+        objects hanging under it.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        namespace = nvme.Namespace(self._parent.cfnode, nsid, mode='lookup')
+        namespace.delete()
+        self.refresh()
+
+
+class UINamespaceNode(configshell.node.ConfigNode):
+    def __init__(self, parent, cfnode):
+        configshell.node.ConfigNode.__init__(self, str(cfnode.nsid), parent)
+        self.cfnode = cfnode
+        self.refresh()
+
+    def refresh(self):
+        self._children = set([])
+        self._init_group('device')
+
+    def _init_group(self, group):
+        attrs = self.cfnode.list_attrs(group)
+        attrs_ro = self.cfnode.list_attrs(group, writable=False)
+        for attr in attrs:
+            writable = attr not in attrs_ro
+            name = "ui_desc_%s" % group
+
+            t, d = getattr(self.__class__, name, {}).get(attr, ('string', ''))
+            self.define_config_group_param(group, attr, t, d, writable)
+
+    def ui_getgroup_device(self, attr):
+        return self.cfnode.get_attr('device', attr)
+
+    def ui_setgroup_device(self, attr, value):
+        return self.cfnode.set_attr('device', attr, value)
+
+
+class UIControllersNode(configshell.node.ConfigNode):
+    def __init__(self, parent):
+        configshell.node.ConfigNode.__init__(self, 'controllers', parent)
+        self._controllers = [0, 1]
+        self.refresh()
+
+    def refresh(self):
+        self._children = set([])
+        for ctrl in self._controllers:
+            UIControllerNode(self, ctrl)
+
+
+class UIControllerNode(configshell.node.ConfigNode):
+    def __init__(self, parent, cntlid):
+        configshell.node.ConfigNode.__init__(self, str(cntlid), parent)
+
+
+def usage():
+    print("syntax: %s save [file_to_save_to]" % sys.argv[0])
+    print("        %s restore [file_to_restore_from]" % sys.argv[0])
+    print("        %s clear" % sys.argv[0])
+    sys.exit(-1)
+
+
+def save(to_file):
+    nvme.Root().save_to_file(to_file)
+
+
+def restore(from_file):
+    try:
+        errors = nvme.Root().restore_from_file(from_file)
+    except IOError:
+        # Not an error if the restore file is not present
+        print("No saved config file at %s, ok, exiting" % from_file)
+    sys.exit(0)
+
+    for error in errors:
+        print(error)
+
+
+def clear(unused):
+    nvme.Root().clear_existing()
+
+
+funcs = dict(save=save, restore=restore, clear=clear)
+
+
+def main():
+    if len(sys.argv) > 3:
+        usage()
+
+    if len(sys.argv) == 2 or len(sys.argv) == 3:
+        if sys.argv[1] == "--help":
+            usage()
+
+        if sys.argv[1] not in funcs.keys():
+            usage()
+
+        if len(sys.argv) == 3:
+            savefile = sys.argv[2]
+        else:
+            savefile = None
+
+        funcs[sys.argv[1]](savefile)
+        return
+
+    shell = configshell.shell.ConfigShell('~/.nvmetcli')
+    UIRootNode(shell)
+
+    while not shell._exit:
+        try:
+            shell.run_interactive()
+        except configshell.ExecutionError as msg:
+            shell.log.error(str(msg))
+
+if __name__ == "__main__":
+    main()
