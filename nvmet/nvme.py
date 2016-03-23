@@ -196,8 +196,27 @@ class CFSNode(object):
 class Root(CFSNode):
     def __init__(self):
         super(Root, self).__init__()
+
+        if not os.path.isdir(self.configfs_dir):
+            self._modprobe('nvmet')
+
+        if not os.path.isdir(self.configfs_dir):
+            raise CFSError("%s does not exist.  Giving up." %
+                self.configfs_dir)
+
         self._path = self.configfs_dir
         self._create_in_cfs('lookup')
+
+    def _modprobe(self, modname):
+        try:
+            from kmodpy import kmod
+
+            try:
+                kmod.Kmod().modprobe(modname, quiet=True)
+            except kmod.KmodError:
+                pass
+        except ImportError:
+            pass
 
     def _list_subsystems(self):
         self._check_self()
