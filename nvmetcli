@@ -18,6 +18,9 @@ License for the specific language governing permissions and limitations
 under the License.
 '''
 
+from __future__ import print_function
+
+import os
 import sys
 import configshell_fb as configshell
 import nvmet.nvme as nvme
@@ -215,6 +218,10 @@ funcs = dict(save=save, restore=restore, clear=clear)
 
 
 def main():
+    if os.geteuid() != 0:
+        print("%s: must run as root." % sys.argv[0], file=sys.stderr)
+        sys.exit(-1)
+
     if len(sys.argv) > 3:
         usage()
 
