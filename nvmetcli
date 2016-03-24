@@ -167,6 +167,11 @@ class UINamespacesNode(UINode):
 
 
 class UINamespaceNode(UINode):
+    ui_desc_device = {
+        'path': ('string', 'Backing device path.'),
+        'nguid': ('string', 'Namspace Global Unique Identifier.'),
+    }
+
     def __init__(self, parent, cfnode):
         UINode.__init__(self, str(cfnode.nsid), parent, cfnode)
 
