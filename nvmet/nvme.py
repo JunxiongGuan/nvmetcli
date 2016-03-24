@@ -436,11 +436,11 @@ class Namespace(CFSNode):
                     nsid = index
                     break
             if nsid is None:
-                raise CFSError("All NSIDs 0-%d in use" % self.MAX_NSID)
+                raise CFSError("All NSIDs 1-%d in use" % self.MAX_NSID)
         else:
             nsid = int(nsid)
-            if nsid < 0 or nsid > self.MAX_NSID:
-                raise CFSError("NSID must be 0 to %d" % self.MAX_NSID)
+            if nsid < 1 or nsid > self.MAX_NSID:
+                raise CFSError("NSID must be 1 to %d" % self.MAX_NSID)
 
         self._attr_groups = ['device']
         self._subsystem = subsystem
