@@ -24,7 +24,7 @@ import uuid
 import json
 from glob import iglob as glob
 
-DEFAULT_SAVE_FILE = 'saveconfig.json'
+DEFAULT_SAVE_FILE = '/etc/nvmet.json'
 
 
 class CFSError(Exception):
@@ -230,7 +230,6 @@ class Root(CFSNode):
     def save_to_file(self, savefile=None):
         '''
         Write the configuration in json format to a file.
-        Save file defaults to '/etc/targets/saveconfig.json'.
         '''
         if savefile:
             savefile = os.path.expanduser(savefile)
