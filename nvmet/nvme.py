@@ -317,7 +317,7 @@ class Subsystem(CFSNode):
 
     def __init__(self, nqn=None, mode='any'):
         '''
-        @param nqn: The optional Target's NQN.
+        @param nqn: The Subsystems's NQN.
             If no NQN is specified, one will be generated.
         @type nqn: string
         @param mode:An optionnal string containing the object creation mode:
@@ -402,26 +402,17 @@ class Namespace(CFSNode):
 
     def __init__(self, subsystem, nsid=None, mode='any'):
         '''
-        A LUN object can be instanciated in two ways:
-            - B{Creation mode}: If I{storage_object} is specified, the
-              underlying configFS object will be created with that parameter.
-              No LUN with the same I{lun} index can pre-exist in the parent TPG
-              in that mode, or instanciation will fail.
-            - B{Lookup mode}: If I{storage_object} is not set, then the LUN
-              will be bound to the existing configFS LUN object of the parent
-              TPG having the specified I{lun} index. The underlying configFS
-              object must already exist in that mode.
-
-        @param parent_tpg: The parent TPG object.
-        @type parent_tpg: TPG
-        @param lun: The LUN index.
-        @type lun: 0-255
-        @param storage_object: The storage object to be exported as a LUN.
-        @type storage_object: StorageObject subclass
-        @param alias: An optional parameter to manually specify the LUN alias.
-        You probably do not need this.
-        @type alias: string
-        @return: A LUN object.
+        @param subsystem: The parent Subsystem object
+        @param nsid: The Namespace identifier
+            If no nsid is specified, the next free one will be used.
+        @type nsid: int
+        @param mode:An optionnal string containing the object creation mode:
+            - I{'any'} means the configFS object will be either looked up
+              or created.
+            - I{'lookup'} means the object MUST already exist configFS.
+            - I{'create'} means the object must NOT already exist in configFS.
+        @type mode:string
+        @return: A Namespace object.
         '''
         super(Namespace, self).__init__()
 
