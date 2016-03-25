@@ -11,6 +11,9 @@ all:
 	@echo "  make clean       - Cleanup the local repository build files."
 	@echo "  make cleanall    - Also remove dist/*"
 
+test:
+	@nose2 -C --coverage ./nvmet
+
 clean:
 	@rm -fv ${NAME}/*.pyc ${NAME}/*.html
 	@rm -frv doc

@@ -50,3 +50,12 @@ arguments.  Then in the nvmetcli prompt type:
 /subsystems/testnqn/namespaces> create 1
 /subsystems/testnqn/namespaces> cd 1
 /subsystems/t.../namespaces/1> set device path=/dev/ram1
+/subsystems/t.../namespaces/1> enable
+
+
+Testing
+-------
+
+nvmetcli comes with a testsuite that tests itsels and the kernel configfs
+interface for the NVMe target.  To run it make sure you have nose2 and
+the coverage plugin for it installed and simple run 'make test'.

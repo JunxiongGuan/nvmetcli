@@ -25,5 +25,6 @@ setup(
     license = 'Apache 2.0',
     maintainer = 'Christoph Hellwig',
     maintainer_email = 'hch@lst.de',
+    test_suite='nose2.collector.collector',
     packages = ['nvmet'],
     )
