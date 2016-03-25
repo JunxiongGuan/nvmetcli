@@ -456,7 +456,7 @@ class Namespace(CFSNode):
             raise CFSError("Invalid parent class")
 
         if nsid is None:
-            nsids = [n.nsid for n in self.subsystem.namespaces]
+            nsids = [n.nsid for n in subsystem.namespaces]
             for index in xrange(1, self.MAX_NSID + 1):
                 if index not in nsids:
                     nsid = index
