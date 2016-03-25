@@ -367,6 +367,8 @@ class Subsystem(CFSNode):
         super(Subsystem, self).__init__()
 
         if nqn is None:
+            if mode == 'lookup':
+                raise CFSError("Need NQN for lookup")
             nqn = self._generate_nqn()
 
         self.nqn = nqn
@@ -456,6 +458,9 @@ class Namespace(CFSNode):
             raise CFSError("Invalid parent class")
 
         if nsid is None:
+            if mode == 'lookup':
+                raise CFSError("Need NSID for lookup")
+
             nsids = [n.nsid for n in subsystem.namespaces]
             for index in xrange(1, self.MAX_NSID + 1):
                 if index not in nsids:
