@@ -50,6 +50,7 @@ class CFSNode(object):
 
     def __init__(self):
         self._path = self.configfs_dir
+        self._enable = 0
         self.attr_groups = []
 
     def __eq__(self, other):
@@ -137,6 +138,10 @@ class CFSNode(object):
         if not os.path.isfile(path):
             raise CFSError("Cannot find attribute: %s" % path)
 
+        if self._enable > 0:
+            raise CFSError("Cannot set attribute while %s is enabled" %
+                           self.__class__.__name__)
+
         try:
             with open(path, 'w') as file_fd:
                 file_fd.write(str(value))
@@ -157,6 +162,30 @@ class CFSNode(object):
 
         with open(path, 'r') as file_fd:
             return file_fd.read().strip()
+
+    def get_enable(self):
+        self._check_self()
+        path = "%s/enable" % self.path
+        if not os.path.isfile(path):
+            return False
+
+        with open(path, 'r') as file_fd:
+            self._enable = int(file_fd.read().strip())
+        return self._enable
+
+    def set_enable(self, value):
+        self._check_self()
+        path = "%s/enable" % self.path
+
+        if not os.path.isfile(path):
+            raise CFSError("Cannot enable %s" % self.path)
+
+        try:
+            with open(path, 'w') as file_fd:
+                file_fd.write(str(value))
+        except Exception as e:
+            raise CFSError("Cannot enable attribute %s: %s (%s)" % (self.path, e, value))
+        self._enable = value
 
     def delete(self):
         '''
@@ -182,6 +211,8 @@ class CFSNode(object):
             for i in self.list_attrs(group, writable=True):
                 a[str(i)] = self.get_attr(group, i)
             d[str(group)] = a
+        if self._enable is not None:
+            d['enable'] = self._enable
         return d
 
     def _setup_attrs(self, attr_dict, err_func):
@@ -191,6 +222,9 @@ class CFSNode(object):
                     self.set_attr(group, name, value)
                 except CFSError as e:
                     err_func(str(e))
+        enable = attr_dict.get('enable')
+        if enable is not None:
+            self.set_enable(enable)
 
 
 class Root(CFSNode):
@@ -439,6 +473,7 @@ class Namespace(CFSNode):
         self._nsid = nsid
         self._path = "%s/namespaces/%d" % (self.subsystem.path, self.nsid)
         self._create_in_cfs(mode)
+        self.get_enable() # XXX should move to baseclass
 
     def _get_subsystem(self):
         return self._subsystem

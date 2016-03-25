@@ -55,6 +55,25 @@ class UINode(configshell.node.ConfigNode):
     def refresh(self):
         self._children = set([])
 
+    def status(self):
+        return "None"
+
+    def ui_command_refresh(self):
+        '''
+        Refreshes and updates the objects tree from the current path.
+        '''
+        self.refresh()
+
+    def ui_command_status(self):
+        '''
+        Displays the current node's status summary.
+
+        SEE ALSO
+        ========
+        B{ls}
+        '''
+        self.shell.log.info("Status for %s: %s" % (self.path, self.status()))
+
     def ui_command_saveconfig(self, savefile=None):
         '''
         Saves the current configuration to a file so that it can be restored
@@ -174,6 +193,47 @@ class UINamespaceNode(UINode):
 
     def __init__(self, parent, cfnode):
         UINode.__init__(self, str(cfnode.nsid), parent, cfnode)
+
+    def status(self):
+        if self.cfnode.get_enable():
+            return "enabled"
+        return "disabled"
+
+    def ui_command_enable(self):
+        '''
+        Enables the current Namespace.
+
+        SEE ALSO
+        ========
+        B{disable}
+        '''
+        if self.cfnode.get_enable():
+            self.shell.log.info("The Namespace is already enabled.")
+        else:
+            try:
+                self.cfnode.set_enable(1)
+                self.shell.log.info("The Namespace has been enabled.")
+            except Exception as e:
+                raise configshell.ExecutionError(
+                    "The Namespace could not be enabled.")
+
+    def ui_command_disable(self):
+        '''
+        Disables the current Namespace.
+
+        SEE ALSO
+        ========
+        B{enable}
+        '''
+        if not self.cfnode.get_enable():
+            self.shell.log.info("The Namespace is already disabled.")
+        else:
+            try:
+                self.cfnode.set_enable(0)
+                self.shell.log.info("The Namespace has been disabled.")
+            except Exception as e:
+                raise configshell.ExecutionError(
+                    "The Namespace could not be dsiabled.")
 
 
 def usage():
