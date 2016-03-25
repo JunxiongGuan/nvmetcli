@@ -50,7 +50,7 @@ class CFSNode(object):
 
     def __init__(self):
         self._path = self.configfs_dir
-        self._attr_groups = []
+        self.attr_groups = []
 
     def __eq__(self, other):
         return self._path == other._path
@@ -177,7 +177,7 @@ class CFSNode(object):
 
     def dump(self):
         d = {}
-        for group in self._attr_groups:
+        for group in self.attr_groups:
             a = {}
             for i in self.list_attrs(group, writable=True):
                 a[str(i)] = self.get_attr(group, i)
@@ -185,7 +185,7 @@ class CFSNode(object):
         return d
 
     def _setup_attrs(self, attr_dict, err_func):
-        for group in self._attr_groups:
+        for group in self.attr_groups:
             for name, value in attr_dict.get(group, {}).iteritems():
                 try:
                     self.set_attr(group, name, value)
@@ -434,7 +434,7 @@ class Namespace(CFSNode):
             if nsid < 1 or nsid > self.MAX_NSID:
                 raise CFSError("NSID must be 1 to %d" % self.MAX_NSID)
 
-        self._attr_groups = ['device']
+        self.attr_groups = ['device']
         self._subsystem = subsystem
         self._nsid = nsid
         self._path = "%s/namespaces/%d" % (self.subsystem.path, self.nsid)
