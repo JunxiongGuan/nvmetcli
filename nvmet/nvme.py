@@ -73,26 +73,26 @@ class CFSNode(object):
         if mode not in ['any', 'lookup', 'create']:
             raise CFSError("Invalid mode: %s" % mode)
         if self.exists and mode == 'create':
-            raise CFSError("This %s already exists in configFS"
-                              % self.__class__.__name__)
+            raise CFSError("This %s already exists in configFS" %
+                           self.__class__.__name__)
         elif not self.exists and mode == 'lookup':
-            raise CFSNotFound("No such %s in configfs: %s"
-                                 % (self.__class__.__name__, self.path))
+            raise CFSNotFound("No such %s in configfs: %s" %
+                              (self.__class__.__name__, self.path))
 
         if not self.exists:
             try:
                 os.mkdir(self.path)
             except:
-                raise CFSError("Could not create %s in configFS"
-                                  % self.__class__.__name__)
+                raise CFSError("Could not create %s in configFS" %
+                               self.__class__.__name__)
 
     def _exists(self):
         return os.path.isdir(self.path)
 
     def _check_self(self):
         if not self.exists:
-            raise CFSNotFound("This %s does not exist in configFS"
-                                 % self.__class__.__name__)
+            raise CFSNotFound("This %s does not exist in configFS" %
+                              self.__class__.__name__)
 
     def list_attrs(self, group, writable=None):
         '''
@@ -184,7 +184,8 @@ class CFSNode(object):
             with open(path, 'w') as file_fd:
                 file_fd.write(str(value))
         except Exception as e:
-            raise CFSError("Cannot enable attribute %s: %s (%s)" % (self.path, e, value))
+            raise CFSError("Cannot enable attribute %s: %s (%s)" %
+                           (self.path, e, value))
         self._enable = value
 
     def delete(self):
@@ -197,7 +198,7 @@ class CFSNode(object):
             os.rmdir(self.path)
 
     path = property(_get_path,
-            doc="Get the configFS object path.")
+                    doc="Get the configFS object path.")
     exists = property(_exists,
             doc="Is True as long as the underlying configFS object exists. "
                       + "If the underlying configFS objects gets deleted "
@@ -236,7 +237,7 @@ class Root(CFSNode):
 
         if not os.path.isdir(self.configfs_dir):
             raise CFSError("%s does not exist.  Giving up." %
-                self.configfs_dir)
+                           self.configfs_dir)
 
         self._path = self.configfs_dir
         self._create_in_cfs('lookup')
@@ -259,7 +260,7 @@ class Root(CFSNode):
             yield Subsystem(d, 'lookup')
 
     subsystems = property(_list_subsystems,
-                doc="Get the list of Subsystems.")
+                          doc="Get the list of Subsystems.")
 
     def save_to_file(self, savefile=None):
         '''
@@ -320,7 +321,7 @@ class Root(CFSNode):
         return errors
 
     def restore_from_file(self, savefile=None, clear_existing=True,
-            abort_on_error=False):
+                          abort_on_error=False):
         '''
         Restore the configuration from a file in json format.
         Returns a list of non-fatal errors. If abort_on_error is set,
@@ -397,7 +398,7 @@ class Subsystem(CFSNode):
         super(Subsystem, self).delete()
 
     namespaces = property(_list_namespaces,
-                doc="Get the list of Namespaces for the Subsystem.")
+                          doc="Get the list of Namespaces for the Subsystem.")
 
     @classmethod
     def setup(cls, t, err_func):
@@ -478,7 +479,7 @@ class Namespace(CFSNode):
         self._nsid = nsid
         self._path = "%s/namespaces/%d" % (self.subsystem.path, self.nsid)
         self._create_in_cfs(mode)
-        self.get_enable() # XXX should move to baseclass
+        self.get_enable()  # XXX should move to baseclass
 
     def _get_subsystem(self):
         return self._subsystem
@@ -487,9 +488,8 @@ class Namespace(CFSNode):
         return self._nsid
 
     subsystem = property(_get_subsystem,
-            doc="Get the parent Subsystem object.")
-    nsid = property(_get_nsid,
-            doc="Get the NSID as an int.")
+                         doc="Get the parent Subsystem object.")
+    nsid = property(_get_nsid, doc="Get the NSID as an int.")
 
     @classmethod
     def setup(cls, subsys, n, err_func):

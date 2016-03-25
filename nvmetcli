@@ -38,10 +38,11 @@ class UINode(configshell.node.ConfigNode):
 
     def _init_group(self, group):
         setattr(self.__class__, "ui_getgroup_%s" % group,
-            lambda self, attr: self.cfnode.get_attr(group, attr))
-            
+                lambda self, attr:
+                    self.cfnode.get_attr(group, attr))
         setattr(self.__class__, "ui_setgroup_%s" % group,
-            lambda self, attr, value: self.cfnode.set_attr(group, attr, value))
+                lambda self, attr, value:
+                    self.cfnode.set_attr(group, attr, value))
 
         attrs = self.cfnode.list_attrs(group)
         attrs_ro = self.cfnode.list_attrs(group, writable=False)
@@ -51,7 +52,7 @@ class UINode(configshell.node.ConfigNode):
             name = "ui_desc_%s" % group
             t, d = getattr(self.__class__, name, {}).get(attr, ('string', ''))
             self.define_config_group_param(group, attr, t, d, writable)
-    
+
     def refresh(self):
         self._children = set([])
 
@@ -87,7 +88,8 @@ class UINode(configshell.node.ConfigNode):
 
 class UIRootNode(UINode):
     def __init__(self, shell):
-        UINode.__init__(self, '/', parent=None, cfnode=nvme.Root(), shell=shell)
+        UINode.__init__(self, '/', parent=None, cfnode=nvme.Root(),
+                        shell=shell)
 
     def refresh(self):
         self._children = set([])
@@ -293,8 +295,8 @@ def main():
         shell = configshell.shell.ConfigShell('~/.nvmetcli')
         UIRootNode(shell)
     except Exception as msg:
-         shell.log.error(str(msg))
-         return
+        shell.log.error(str(msg))
+        return
 
     while not shell._exit:
         try:
