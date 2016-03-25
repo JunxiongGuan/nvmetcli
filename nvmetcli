@@ -168,23 +168,6 @@ class UINamespaceNode(configshell.node.ConfigNode):
         return self.cfnode.set_attr('device', attr, value)
 
 
-class UIControllersNode(configshell.node.ConfigNode):
-    def __init__(self, parent):
-        configshell.node.ConfigNode.__init__(self, 'controllers', parent)
-        self._controllers = [0, 1]
-        self.refresh()
-
-    def refresh(self):
-        self._children = set([])
-        for ctrl in self._controllers:
-            UIControllerNode(self, ctrl)
-
-
-class UIControllerNode(configshell.node.ConfigNode):
-    def __init__(self, parent, cntlid):
-        configshell.node.ConfigNode.__init__(self, str(cntlid), parent)
-
-
 def usage():
     print("syntax: %s save [file_to_save_to]" % sys.argv[0])
     print("        %s restore [file_to_restore_from]" % sys.argv[0])
