@@ -229,13 +229,17 @@ def main():
         funcs[sys.argv[1]](savefile)
         return
 
-    shell = configshell.shell.ConfigShell('~/.nvmetcli')
-    UIRootNode(shell)
+    try:
+        shell = configshell.shell.ConfigShell('~/.nvmetcli')
+        UIRootNode(shell)
+    except Exception as msg:
+         shell.log.error(str(msg))
+         return
 
     while not shell._exit:
         try:
             shell.run_interactive()
-        except configshell.ExecutionError as msg:
+        except Exception as msg:
             shell.log.error(str(msg))
 
 if __name__ == "__main__":
