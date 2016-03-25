@@ -94,6 +94,7 @@ class UIRootNode(UINode):
     def refresh(self):
         self._children = set([])
         UISubsystemsNode(self)
+        UIPortsNode(self)
 
     def ui_command_restoreconfig(self, savefile=None, clear_existing=False):
         '''
@@ -235,7 +236,88 @@ class UINamespaceNode(UINode):
                 self.shell.log.info("The Namespace has been disabled.")
             except Exception as e:
                 raise configshell.ExecutionError(
-                    "The Namespace could not be dsiabled.")
+                    "The Namespace could not be disabled.")
+
+
+class UIPortsNode(UINode):
+    def __init__(self, parent):
+        UINode.__init__(self, 'ports', parent)
+
+    def refresh(self):
+        self._children = set([])
+        for port in self.parent.cfnode.ports:
+            UIPortNode(self, port)
+
+    def ui_command_create(self, portid):
+        '''
+        Creates a new NVMe port. If I{port} is ommited, then the new Port
+        will use the next available portid.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        port = nvme.Port(self.parent.parent.cfnode, portid, mode='create')
+        UIPortNode(self, port)
+
+    def ui_command_delete(self, portid):
+        '''
+        Recursively deletes the NVMe Port with the specified I{port}, and all
+        objects hanging under it.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        port = nvme.Port(self.parent.parent.cfnode, portid, mode='lookup')
+        port.delete()
+        self.refresh()
+
+
+class UIPortNode(UINode):
+    def __init__(self, parent, cfnode):
+        UINode.__init__(self, str(cfnode.portid), parent, cfnode)
+
+    def status(self):
+        if self.cfnode.get_enable():
+            return "enabled"
+        return "disabled"
+
+    def ui_command_enable(self):
+        '''
+        Enables the current Port.
+
+        SEE ALSO
+        ========
+        B{disable}
+        '''
+        if self.cfnode.get_enable():
+            self.shell.log.info("The Port is already enabled.")
+        else:
+            try:
+                self.cfnode.set_enable(1)
+                self.shell.log.info("The Port has been enabled.")
+            except Exception as e:
+                raise configshell.ExecutionError(
+                    "The Port could not be enabled.")
+
+    def ui_command_disable(self):
+        '''
+        Disables the current Port.
+
+        SEE ALSO
+        ========
+        B{enable}
+        '''
+        if not self.cfnode.get_enable():
+            self.shell.log.info("The Port is already disabled.")
+        else:
+            try:
+                self.cfnode.set_enable(0)
+                self.shell.log.info("The Port has been disabled.")
+            except Exception as e:
+                raise configshell.ExecutionError(
+                    "The Port could not be disabled.")
 
 
 def usage():

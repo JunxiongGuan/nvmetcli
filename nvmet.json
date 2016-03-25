@@ -1,4 +1,17 @@
 {
+  "ports": [
+    {
+      "addr": {
+        "adrfam": "ipv4", 
+        "traddr": "192.168.7.68", 
+        "treq": "not specified", 
+        "trsvcid": "1023", 
+        "trtype": "rdma"
+      }, 
+      "enable": 1, 
+      "portid": 2
+    }
+  ], 
   "subsystems": [
     {
       "namespaces": [

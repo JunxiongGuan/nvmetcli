@@ -263,6 +263,15 @@ class Root(CFSNode):
     subsystems = property(_list_subsystems,
                           doc="Get the list of Subsystems.")
 
+    def _list_ports(self):
+        self._check_self()
+
+        for d in os.listdir("%s/ports/" % self._path):
+            yield Port(self, d, 'lookup')
+
+    ports = property(_list_ports,
+                doc="Get the list of Ports.")
+
     def save_to_file(self, savefile=None):
         '''
         Write the configuration in json format to a file.
@@ -289,6 +298,8 @@ class Root(CFSNode):
 
         for s in self.subsystems:
             s.delete()
+        for p in self.ports:
+            p.delete()
 
     def restore(self, config, clear_existing=False, abort_on_error=False):
         '''
@@ -319,6 +330,13 @@ class Root(CFSNode):
 
             Subsystem.setup(t, err_func)
 
+        for index, t in enumerate(config.get('ports', [])):
+            if 'portid' not in t:
+                err_func("'portid' not defined in port %d" % index)
+                continue
+
+            Port.setup(self, t, err_func)
+
         return errors
 
     def restore_from_file(self, savefile=None, clear_existing=True,
@@ -341,6 +359,7 @@ class Root(CFSNode):
     def dump(self):
         d = super(Root, self).dump()
         d['subsystems'] = [s.dump() for s in self.subsystems]
+        d['ports'] = [p.dump() for p in self.ports]
         return d
 
 
@@ -514,6 +533,70 @@ class Namespace(CFSNode):
     def dump(self):
         d = super(Namespace, self).dump()
         d['nsid'] = self.nsid
+        return d
+
+
+class Port(CFSNode):
+    '''
+    This is an interface to a NVMe Namespace in configFS.
+    A Namespace is identified by its parent Subsystem and Namespace ID.
+    '''
+
+    MAX_PORTID = 8192
+
+    def __repr__(self):
+        return "<Port %d>" % self.portid
+
+    def __init__(self, root, portid=None, mode='any'):
+        super(Port, self).__init__()
+
+        if portid is None:
+            portids = [p.portid for p in root.ports]
+            for index in xrange(0, 1 << 16):
+                if index not in portids:
+                    portid = index
+                    break
+            if portid is None:
+                raise CFSError("All Port IDs 0-%d in use" % 1 << 16)
+        else:
+            portid = int(portid)
+            if portid < 0 or portid > self.MAX_PORTID:
+                raise CFSError("Port ID must be 0 to %d" % self.MAX_PORTID)
+
+        self.attr_groups = ['addr']
+        self._portid = portid
+        self._path = "%s/ports/%d" % (self.configfs_dir, portid)
+        self._create_in_cfs(mode)
+
+    def _get_portid(self):
+        return self._portid
+
+    portid = property(_get_portid,
+            doc="Get the Port ID as an int.")
+
+    @classmethod
+    def setup(cls, root, n, err_func):
+        '''
+        Set up a Namespace object based upon n dict, from saved config.
+        Guard against missing or bad dict items, but keep going.
+        Call 'err_func' for each error.
+        '''
+
+        if 'portid' not in n:
+            err_func("'portid' not defined for Port")
+            return
+
+        try:
+            port = Port(root, n['portid'])
+        except CFSError as e:
+            err_func("Could not create Port object: %s" % e)
+            return
+
+        port._setup_attrs(n, err_func)
+
+    def dump(self):
+        d = super(Port, self).dump()
+        d['portid'] = self.portid
         return d
 
 

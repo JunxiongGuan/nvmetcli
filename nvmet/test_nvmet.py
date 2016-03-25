@@ -148,6 +148,103 @@ class TestNvmet(unittest.TestCase):
         s.delete()
         self.assertEqual(len(list(root.subsystems)), 0)
 
+    def test_port(self):
+        root = nvme.Root()
+        root.clear_existing()
+        for p in root.ports:
+            self.assertTrue(False, 'Found Port after clear')
+
+        # create mode
+        p1 = nvme.Port(root, portid=0, mode='create')
+        self.assertIsNotNone(p1)
+        self.assertEqual(len(list(root.ports)), 1)
+
+        # any mode, should create
+        p2 = nvme.Port(root, portid=1, mode='any')
+        self.assertIsNotNone(p2)
+        self.assertEqual(len(list(root.ports)), 2)
+
+        # automatic portid
+        p3 = nvme.Port(root, mode='create')
+        self.assertIsNotNone(p3)
+        self.assertNotEqual(p3, p1)
+        self.assertNotEqual(p3, p2)
+        self.assertEqual(len(list(root.ports)), 3)
+
+        # duplicate
+        self.assertRaises(nvme.CFSError, nvme.Port,
+                          root, portid=0, mode='create')
+        self.assertEqual(len(list(root.ports)), 3)
+
+        # lookup using any, should not create
+        p = nvme.Port(root, portid=0, mode='any')
+        self.assertEqual(p1, p)
+        self.assertEqual(len(list(root.ports)), 3)
+
+        # lookup only
+        p = nvme.Port(root, portid=1, mode='lookup')
+        self.assertEqual(p2, p)
+        self.assertEqual(len(list(root.ports)), 3)
+
+        # lookup without portid
+        self.assertRaises(nvme.CFSError, nvme.Port, root, mode='lookup')
+
+        # and delete them all
+        for p in root.ports:
+            p.delete()
+        self.assertEqual(len(list(root.ports)), 0)
+
+    def test_loop_port(self):
+        root = nvme.Root()
+        root.clear_existing()
+
+        p = nvme.Port(root, portid=0, mode='create')
+
+        self.assertFalse(p.get_enable())
+        self.assertTrue('addr' in p.attr_groups)
+
+        # no trtype set yet, should fail
+        self.assertRaises(nvme.CFSError, p.set_enable, 1)
+
+        # now set trtype to loop and other attrs and enable
+        p.set_attr('addr', 'trtype', 'loop')
+        p.set_attr('addr', 'adrfam', 'ipv4')
+        p.set_attr('addr', 'traddr', '192.168.0.1')
+        p.set_attr('addr', 'treq', 'not required')
+        p.set_attr('addr', 'trsvcid', '1023')
+        p.set_enable(1)
+        self.assertTrue(p.get_enable())
+
+        # test double enable
+        p.set_enable(1)
+
+        # test that we can't write to attrs while enabled
+        self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'trtype',
+                          'rdma')
+        self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'adrfam',
+                          'ipv6')
+        self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'traddr',
+                          '10.0.0.1')
+        self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'treq',
+                          'required')
+        self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'trsvcid',
+                          '21')
+
+        # disable: once and twice
+        p.set_enable(0)
+        p.set_enable(0)
+
+        # check that the attrs haven't been tampered with
+        self.assertEqual(p.get_attr('addr', 'trtype'), 'loop')
+        self.assertEqual(p.get_attr('addr', 'adrfam'), 'ipv4')
+        self.assertEqual(p.get_attr('addr', 'traddr'), '192.168.0.1')
+        self.assertEqual(p.get_attr('addr', 'treq'), 'not required')
+        self.assertEqual(p.get_attr('addr', 'trsvcid'), '1023')
+
+        # enable again, and remove while enabled
+        p.set_enable(1)
+        p.delete()
+
     def test_invalid_input(self):
         root = nvme.Root()
         root.clear_existing()
@@ -167,6 +264,9 @@ class TestNvmet(unittest.TestCase):
         self.assertRaises(nvme.CFSError, nvme.Subsystem,
                           nqn=discover_nqn, mode='create')
 
+        self.assertRaises(nvme.CFSError, nvme.Port,
+                          root=root, portid=1 << 17, mode='create')
+
     def test_save_restore(self):
         root = nvme.Root()
         root.clear_existing()
@@ -179,6 +279,15 @@ class TestNvmet(unittest.TestCase):
 
         nguid = n.get_attr('device', 'nguid')
 
+        p = nvme.Port(root, portid=66, mode='create')
+        p.set_attr('addr', 'trtype', 'loop')
+        p.set_attr('addr', 'adrfam', 'ipv4')
+        p.set_attr('addr', 'traddr', '192.168.0.1')
+        p.set_attr('addr', 'treq', 'not required')
+        p.set_attr('addr', 'trsvcid', '1023')
+        p.set_enable(1)
+
+        # save, clear, and restore
         root.save_to_file('test.json')
         root.clear_existing()
         root.restore_from_file('test.json')
@@ -193,8 +302,15 @@ class TestNvmet(unittest.TestCase):
         # rebuild our view of the world
         s = nvme.Subsystem(nqn='testnqn', mode='lookup')
         n = nvme.Namespace(s, nsid=42, mode='lookup')
+        p = nvme.Port(root, portid=66, mode='lookup')
 
         # and check everything is still the same
         self.assertTrue(n.get_enable())
         self.assertEqual(n.get_attr('device', 'path'), '/dev/ram0')
         self.assertEqual(n.get_attr('device', 'nguid'), nguid)
+
+        self.assertEqual(p.get_attr('addr', 'trtype'), 'loop')
+        self.assertEqual(p.get_attr('addr', 'adrfam'), 'ipv4')
+        self.assertEqual(p.get_attr('addr', 'traddr'), '192.168.0.1')
+        self.assertEqual(p.get_attr('addr', 'treq'), 'not required')
+        self.assertEqual(p.get_attr('addr', 'trsvcid'), '1023')
