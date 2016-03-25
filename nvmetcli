@@ -26,22 +26,53 @@ import configshell_fb as configshell
 import nvmet.nvme as nvme
 
 
-class UIRootNode(configshell.node.ConfigNode):
-    def __init__(self, shell):
-        configshell.node.ConfigNode.__init__(self, '/', shell=shell)
-        self.cfnode = nvme.Root()
+class UINode(configshell.node.ConfigNode):
+    def __init__(self, name, parent=None, cfnode=None, shell=None):
+        configshell.node.ConfigNode.__init__(self, name, parent, shell)
+        self.cfnode = cfnode
+        if self.cfnode:
+            if self.cfnode.attr_groups:
+                for group in self.cfnode.attr_groups:
+                    self._init_group(group)
         self.refresh()
 
+    def _init_group(self, group):
+        setattr(self.__class__, "ui_getgroup_%s" % group,
+            lambda self, attr: self.cfnode.get_attr(group, attr))
+            
+        setattr(self.__class__, "ui_setgroup_%s" % group,
+            lambda self, attr, value: self.cfnode.set_attr(group, attr, value))
+
+        attrs = self.cfnode.list_attrs(group)
+        attrs_ro = self.cfnode.list_attrs(group, writable=False)
+        for attr in attrs:
+            writable = attr not in attrs_ro
+
+            name = "ui_desc_%s" % group
+            t, d = getattr(self.__class__, name, {}).get(attr, ('string', ''))
+            self.define_config_group_param(group, attr, t, d, writable)
+    
     def refresh(self):
         self._children = set([])
-        UISubsystemsNode(self)
 
     def ui_command_saveconfig(self, savefile=None):
         '''
         Saves the current configuration to a file so that it can be restored
         on next boot.
         '''
-        self.cfnode.save_to_file(savefile)
+        node = self
+        while node.parent is not None:
+            node = node.parent
+        node.cfnode.save_to_file(savefile)
+
+
+class UIRootNode(UINode):
+    def __init__(self, shell):
+        UINode.__init__(self, '/', parent=None, cfnode=nvme.Root(), shell=shell)
+
+    def refresh(self):
+        self._children = set([])
+        UISubsystemsNode(self)
 
     def ui_command_restoreconfig(self, savefile=None, clear_existing=False):
         '''
@@ -56,15 +87,13 @@ class UIRootNode(configshell.node.ConfigNode):
                 (len(errors), "\n".join(errors)))
 
 
-class UISubsystemsNode(configshell.node.ConfigNode):
+class UISubsystemsNode(UINode):
     def __init__(self, parent):
-        configshell.node.ConfigNode.__init__(self, 'subsystems', parent)
-        self._parent = parent
-        self.refresh()
+        UINode.__init__(self, 'subsystems', parent)
 
     def refresh(self):
         self._children = set([])
-        for subsys in self._parent.cfnode.subsystems:
+        for subsys in self.parent.cfnode.subsystems:
             UISubsystemNode(self, subsys)
 
     def ui_command_create(self, nqn=None):
@@ -93,26 +122,22 @@ class UISubsystemsNode(configshell.node.ConfigNode):
         self.refresh()
 
 
-class UISubsystemNode(configshell.node.ConfigNode):
+class UISubsystemNode(UINode):
     def __init__(self, parent, cfnode):
-        configshell.node.ConfigNode.__init__(self, cfnode.nqn, parent)
-        self.cfnode = cfnode
-        self.refresh()
+        UINode.__init__(self, cfnode.nqn, parent, cfnode)
 
     def refresh(self):
         self._children = set([])
         UINamespacesNode(self)
 
 
-class UINamespacesNode(configshell.node.ConfigNode):
+class UINamespacesNode(UINode):
     def __init__(self, parent):
-        configshell.node.ConfigNode.__init__(self, 'namespaces', parent)
-        self._parent = parent
-        self.refresh()
+        UINode.__init__(self, 'namespaces', parent)
 
     def refresh(self):
         self._children = set([])
-        for ns in self._parent.cfnode.namespaces:
+        for ns in self.parent.cfnode.namespaces:
             UINamespaceNode(self, ns)
 
     def ui_command_create(self, nsid=None):
@@ -124,7 +149,7 @@ class UINamespacesNode(configshell.node.ConfigNode):
         ========
         B{delete}
         '''
-        namespace = nvme.Namespace(self._parent.cfnode, nsid, mode='create')
+        namespace = nvme.Namespace(self.parent.cfnode, nsid, mode='create')
         UINamespaceNode(self, namespace)
 
     def ui_command_delete(self, nsid):
@@ -136,36 +161,14 @@ class UINamespacesNode(configshell.node.ConfigNode):
         ========
         B{delete}
         '''
-        namespace = nvme.Namespace(self._parent.cfnode, nsid, mode='lookup')
+        namespace = nvme.Namespace(self.parent.cfnode, nsid, mode='lookup')
         namespace.delete()
         self.refresh()
 
 
-class UINamespaceNode(configshell.node.ConfigNode):
+class UINamespaceNode(UINode):
     def __init__(self, parent, cfnode):
-        configshell.node.ConfigNode.__init__(self, str(cfnode.nsid), parent)
-        self.cfnode = cfnode
-        self.refresh()
-
-    def refresh(self):
-        self._children = set([])
-        self._init_group('device')
-
-    def _init_group(self, group):
-        attrs = self.cfnode.list_attrs(group)
-        attrs_ro = self.cfnode.list_attrs(group, writable=False)
-        for attr in attrs:
-            writable = attr not in attrs_ro
-            name = "ui_desc_%s" % group
-
-            t, d = getattr(self.__class__, name, {}).get(attr, ('string', ''))
-            self.define_config_group_param(group, attr, t, d, writable)
-
-    def ui_getgroup_device(self, attr):
-        return self.cfnode.get_attr('device', attr)
-
-    def ui_setgroup_device(self, attr, value):
-        return self.cfnode.set_attr('device', attr, value)
+        UINode.__init__(self, str(cfnode.nsid), parent, cfnode)
 
 
 def usage():
