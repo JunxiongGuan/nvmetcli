@@ -50,7 +50,7 @@ class CFSNode(object):
 
     def __init__(self):
         self._path = self.configfs_dir
-        self._enable = 0
+        self._enable = None
         self.attr_groups = []
 
     def __eq__(self, other):
@@ -85,6 +85,7 @@ class CFSNode(object):
             except:
                 raise CFSError("Could not create %s in configFS" %
                                self.__class__.__name__)
+        self.get_enable()
 
     def _exists(self):
         return os.path.isdir(self.path)
@@ -138,7 +139,7 @@ class CFSNode(object):
         if not os.path.isfile(path):
             raise CFSError("Cannot find attribute: %s" % path)
 
-        if self._enable > 0:
+        if self._enable:
             raise CFSError("Cannot set attribute while %s is enabled" %
                            self.__class__.__name__)
 
@@ -167,7 +168,7 @@ class CFSNode(object):
         self._check_self()
         path = "%s/enable" % self.path
         if not os.path.isfile(path):
-            return False
+            return None
 
         with open(path, 'r') as file_fd:
             self._enable = int(file_fd.read().strip())
@@ -177,14 +178,14 @@ class CFSNode(object):
         self._check_self()
         path = "%s/enable" % self.path
 
-        if not os.path.isfile(path):
+        if not os.path.isfile(path) or self._enable is None:
             raise CFSError("Cannot enable %s" % self.path)
 
         try:
             with open(path, 'w') as file_fd:
                 file_fd.write(str(value))
         except Exception as e:
-            raise CFSError("Cannot enable attribute %s: %s (%s)" %
+            raise CFSError("Cannot enable %s: %s (%s)" %
                            (self.path, e, value))
         self._enable = value
 
@@ -479,7 +480,6 @@ class Namespace(CFSNode):
         self._nsid = nsid
         self._path = "%s/namespaces/%d" % (self.subsystem.path, self.nsid)
         self._create_in_cfs(mode)
-        self.get_enable()  # XXX should move to baseclass
 
     def _get_subsystem(self):
         return self._subsystem
