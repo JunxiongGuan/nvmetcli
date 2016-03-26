@@ -156,6 +156,8 @@ class TestNvmet(unittest.TestCase):
         n.set_attr('device', 'path', '/dev/ram0')
         n.set_enable(1)
 
+        nguid = n.get_attr('device', 'nguid')
+
         root.save_to_file('test.json')
         root.clear_existing()
         root.restore_from_file('test.json')
@@ -174,3 +176,4 @@ class TestNvmet(unittest.TestCase):
         # and check everything is still the same
         self.assertTrue(n.get_enable())
         self.assertEqual(n.get_attr('device', 'path'), '/dev/ram0')
+        self.assertEqual(n.get_attr('device', 'nguid'), nguid)
