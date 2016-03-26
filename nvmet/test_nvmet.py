@@ -1,4 +1,6 @@
 
+import random
+import string
 import unittest
 import nvmet.nvme as nvme
 
@@ -145,6 +147,25 @@ class TestNvmet(unittest.TestCase):
 
         s.delete()
         self.assertEqual(len(list(root.subsystems)), 0)
+
+    def test_invalid_input(self):
+        root = nvme.Root()
+        root.clear_existing()
+
+        self.assertRaises(nvme.CFSError, nvme.Subsystem,
+                          nqn='', mode='create')
+        self.assertRaises(nvme.CFSError, nvme.Subsystem,
+                          nqn='/', mode='create')
+
+        for l in [ 257, 512, 1024, 2048 ]:
+            toolong = ''.join(random.choice(string.lowercase)
+                              for i in range(l))
+            self.assertRaises(nvme.CFSError, nvme.Subsystem,
+                              nqn=toolong, mode='create')
+
+        discover_nqn = "nqn.2014-08.org.nvmexpress.discovery"
+        self.assertRaises(nvme.CFSError, nvme.Subsystem,
+                          nqn=discover_nqn, mode='create')
 
     def test_save_restore(self):
         root = nvme.Root()
