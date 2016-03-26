@@ -4,14 +4,18 @@
       "namespaces": [
         {
           "device": {
+            "nguid": "8a6a2e57-1a2d-2b41-8938-bc409c4ebb6c", 
             "path": "/dev/ram0"
           }, 
+          "enable": 0, 
           "nsid": 2
         }, 
         {
           "device": {
+            "nguid": "289ae029-c396-3143-87e8-aec0d7a4b1a8", 
             "path": "/dev/nvme0n1"
           }, 
+          "enable": 1, 
           "nsid": 1
         }
       ], 
