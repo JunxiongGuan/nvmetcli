@@ -245,6 +245,67 @@ class TestNvmet(unittest.TestCase):
         p.set_enable(1)
         p.delete()
 
+    def test_host(self):
+        root = nvme.Root()
+        root.clear_existing()
+        for p in root.hosts:
+            self.assertTrue(False, 'Found Host after clear')
+
+        # create mode
+        h1 = nvme.Host(nqn='foo', mode='create')
+        self.assertIsNotNone(h1)
+        self.assertEqual(len(list(root.hosts)), 1)
+
+        # any mode, should create
+        h2 = nvme.Host(nqn='bar', mode='any')
+        self.assertIsNotNone(h2)
+        self.assertEqual(len(list(root.hosts)), 2)
+
+        # duplicate
+        self.assertRaises(nvme.CFSError, nvme.Host,
+                          'foo', mode='create')
+        self.assertEqual(len(list(root.hosts)), 2)
+
+        # lookup using any, should not create
+        h = nvme.Host('foo', mode='any')
+        self.assertEqual(h1, h)
+        self.assertEqual(len(list(root.hosts)), 2)
+
+        # lookup only
+        h = nvme.Host('bar', mode='lookup')
+        self.assertEqual(h2, h)
+        self.assertEqual(len(list(root.hosts)), 2)
+
+        # and delete them all
+        for h in root.hosts:
+            h.delete()
+        self.assertEqual(len(list(root.hosts)), 0)
+
+    def test_allowed_hosts(self):
+        root = nvme.Root()
+
+        h = nvme.Host(nqn='hostnqn', mode='create')
+
+        s = nvme.Subsystem(nqn='testnqn', mode='create')
+
+        # add allowed_host
+        s.add_allowed_host(nqn='hostnqn')
+
+        # duplicate
+        self.assertRaises(nvme.CFSError, s.add_allowed_host, 'hostnqn')
+
+        # invalid
+        self.assertRaises(nvme.CFSError, s.add_allowed_host, 'invalid')
+
+        # remove again
+        s.remove_allowed_host('hostnqn')
+
+        # duplicate removal
+        self.assertRaises(nvme.CFSError, s.remove_allowed_host, 'hostnqn')
+
+        # invalid removal
+        self.assertRaises(nvme.CFSError, s.remove_allowed_host, 'foobar')
+
     def test_invalid_input(self):
         root = nvme.Root()
         root.clear_existing()
@@ -271,7 +332,13 @@ class TestNvmet(unittest.TestCase):
         root = nvme.Root()
         root.clear_existing()
 
+        h = nvme.Host(nqn='hostnqn', mode='create')
+
         s = nvme.Subsystem(nqn='testnqn', mode='create')
+        s.add_allowed_host(nqn='hostnqn')
+
+        s2 = nvme.Subsystem(nqn='testnqn2', mode='create')
+        s2.set_attr('attr', 'allow_any_host', 1)
 
         n = nvme.Namespace(s, nsid=42, mode='create')
         n.set_attr('device', 'path', '/dev/ram0')
@@ -300,9 +367,15 @@ class TestNvmet(unittest.TestCase):
         root.restore_from_file('test.json', True)
 
         # rebuild our view of the world
+        h = nvme.Host(nqn='hostnqn', mode='lookup')
         s = nvme.Subsystem(nqn='testnqn', mode='lookup')
+        s2 = nvme.Subsystem(nqn='testnqn2', mode='lookup')
         n = nvme.Namespace(s, nsid=42, mode='lookup')
         p = nvme.Port(root, portid=66, mode='lookup')
+
+        self.assertEqual(s.get_attr('attr', 'allow_any_host'), "0")
+        self.assertEqual(s2.get_attr('attr', 'allow_any_host'), "1")
+        self.assertIn('hostnqn', s.allowed_hosts)
 
         # and check everything is still the same
         self.assertTrue(n.get_enable())

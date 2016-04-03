@@ -95,6 +95,7 @@ class UIRootNode(UINode):
         self._children = set([])
         UISubsystemsNode(self)
         UIPortsNode(self)
+        UIHostsNode(self)
 
     def ui_command_restoreconfig(self, savefile=None, clear_existing=False):
         '''
@@ -151,6 +152,7 @@ class UISubsystemNode(UINode):
     def refresh(self):
         self._children = set([])
         UINamespacesNode(self)
+        UIAllowedHostsNode(self)
 
 
 class UINamespacesNode(UINode):
@@ -239,6 +241,66 @@ class UINamespaceNode(UINode):
                     "The Namespace could not be disabled.")
 
 
+class UIAllowedHostsNode(UINode):
+    def __init__(self, parent):
+        UINode.__init__(self, 'allowed_hosts', parent)
+
+    def refresh(self):
+        self._children = set([])
+        for host in self.parent.cfnode.allowed_hosts:
+            UIAllowedHostNode(self, host)
+
+    def ui_command_create(self, nqn):
+        '''
+        Grants access to parent subsystems to the host specified by I{nqn}.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        self.parent.cfnode.add_allowed_host(nqn)
+        UIAllowedHostNode(self, nqn)
+
+    def ui_complete_create(self, parameters, text, current_param):
+        completions = []
+        if current_param == 'nqn':
+            for host in self.get_node('/hosts').children:
+                completions.append(host.cfnode.nqn)
+
+        if len(completions) == 1:
+            return [completions[0] + ' ']
+        else:
+            return completions
+
+    def ui_command_delete(self, nqn):
+        '''
+        Recursively deletes the namespace with the specified I{nsid}, and all
+        objects hanging under it.
+
+        SEE ALSO
+        ========
+        B{create}
+        '''
+        self.parent.cfnode.remove_allowed_host(nqn)
+        self.refresh()
+
+    def ui_complete_delete(self, parameters, text, current_param):
+        completions = []
+        if current_param == 'nqn':
+            for nqn in self.parent.cfnode.allowed_hosts:
+                completions.append(nqn)
+
+        if len(completions) == 1:
+            return [completions[0] + ' ']
+        else:
+            return completions
+
+
+class UIAllowedHostNode(UINode):
+    def __init__(self, parent, nqn):
+        UINode.__init__(self, nqn, parent)
+
+
 class UIPortsNode(UINode):
     def __init__(self, parent):
         UINode.__init__(self, 'ports', parent)
@@ -318,6 +380,45 @@ class UIPortNode(UINode):
             except Exception as e:
                 raise configshell.ExecutionError(
                     "The Port could not be disabled.")
+
+
+class UIHostsNode(UINode):
+    def __init__(self, parent):
+        UINode.__init__(self, 'hosts', parent)
+
+    def refresh(self):
+        self._children = set([])
+        for host in self.parent.cfnode.hosts:
+            UIHostNode(self, host)
+
+    def ui_command_create(self, nqn):
+        '''
+        Creates a new NVMe host.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        host = nvme.Host(nqn, mode='create')
+        UIHostNode(self, host)
+
+    def ui_command_delete(self, nqn):
+        '''
+        Recursively deletes the NVMe Host with the specified I{nqn}, and all
+        objects hanging under it.
+
+        SEE ALSO
+        ========
+        B{create}
+        '''
+        host = nvme.Host(nqn, mode='lookup')
+        host.delete()
+        self.refresh()
+
+
+class UIHostNode(UINode):
+    def __init__(self, parent, cfnode):
+        UINode.__init__(self, cfnode.nqn, parent, cfnode)
 
 
 def usage():

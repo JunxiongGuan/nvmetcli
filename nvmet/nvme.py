@@ -272,6 +272,15 @@ class Root(CFSNode):
     ports = property(_list_ports,
                 doc="Get the list of Ports.")
 
+    def _list_hosts(self):
+        self._check_self()
+
+        for h in os.listdir("%s/hosts/" % self._path):
+            yield Host(h, 'lookup')
+
+    hosts = property(_list_hosts,
+                     doc="Get the list of Hosts.")
+
     def save_to_file(self, savefile=None):
         '''
         Write the configuration in json format to a file.
@@ -300,6 +309,8 @@ class Root(CFSNode):
             s.delete()
         for p in self.ports:
             p.delete()
+        for h in self.hosts:
+            h.delete()
 
     def restore(self, config, clear_existing=False, abort_on_error=False):
         '''
@@ -322,6 +333,14 @@ class Root(CFSNode):
         else:
             def err_func(err_str):
                 errors.append(err_str + ", skipped")
+
+        # Create the hosts first because the subsystems reference them
+        for index, t in enumerate(config.get('hosts', [])):
+            if 'nqn' not in t:
+                err_func("'nqn' not defined in host %d" % index)
+                continue
+
+            Host.setup(t, err_func)
 
         for index, t in enumerate(config.get('subsystems', [])):
             if 'nqn' not in t:
@@ -360,6 +379,7 @@ class Root(CFSNode):
         d = super(Root, self).dump()
         d['subsystems'] = [s.dump() for s in self.subsystems]
         d['ports'] = [p.dump() for p in self.ports]
+        d['hosts'] = [h.dump() for h in self.hosts]
         return d
 
 
@@ -393,6 +413,7 @@ class Subsystem(CFSNode):
             nqn = self._generate_nqn()
 
         self.nqn = nqn
+        self.attr_groups = ['attr']
         self._path = "%s/subsystems/%s" % (self.configfs_dir, nqn)
         self._create_in_cfs(mode)
 
@@ -415,10 +436,38 @@ class Subsystem(CFSNode):
         self._check_self()
         for ns in self.namespaces:
             ns.delete()
+        for h in self.allowed_hosts:
+            self.remove_allowed_host(h)
         super(Subsystem, self).delete()
 
     namespaces = property(_list_namespaces,
                           doc="Get the list of Namespaces for the Subsystem.")
+
+    def _list_allowed_hosts(self):
+        return [os.path.basename(name)
+                for name in os.listdir("%s/allowed_hosts/" % self._path)]
+
+    allowed_hosts = property(_list_allowed_hosts,
+                             doc="Get the list of Allowed Hosts for the Subsystem.")
+
+    def add_allowed_host(self, nqn):
+        '''
+        Enable access for the host identified by I{nqn} to the Subsystem
+        '''
+        try:
+            os.symlink("%s/hosts/%s" % (self.configfs_dir, nqn),
+                       "%s/allowed_hosts/%s" % (self._path, nqn))
+        except Exception as e:
+            raise CFSError("Could not symlink %s in configFS: %s" % (nqn, e))
+
+    def remove_allowed_host(self, nqn):
+        '''
+        Disable access for the host identified by I{nqn} to the Subsystem
+        '''
+        try:
+            os.unlink("%s/allowed_hosts/%s" % (self._path, nqn))
+        except Exception as e:
+            raise CFSError("Could not unlink %s in configFS: %s" % (nqn, e))
 
     @classmethod
     def setup(cls, t, err_func):
@@ -440,11 +489,16 @@ class Subsystem(CFSNode):
 
         for ns in t.get('namespaces', []):
             Namespace.setup(s, ns, err_func)
+        for h in t.get('allowed_hosts', []):
+            s.add_allowed_host(h)
+
+        s._setup_attrs(t, err_func)
 
     def dump(self):
         d = super(Subsystem, self).dump()
         d['nqn'] = self.nqn
         d['namespaces'] = [ns.dump() for ns in self.namespaces]
+        d['allowed_hosts'] = self.allowed_hosts
         return d
 
 
@@ -597,6 +651,57 @@ class Port(CFSNode):
     def dump(self):
         d = super(Port, self).dump()
         d['portid'] = self.portid
+        return d
+
+
+class Host(CFSNode):
+    '''
+    This is an interface to a NVMe Host in configFS.
+    A Host is identified by its NQN.
+    '''
+
+    def __repr__(self):
+        return "<Host %s>" % self.nqn
+
+    def __init__(self, nqn, mode='any'):
+        '''
+        @param nqn: The Hosts's NQN.
+        @type nqn: string
+        @param mode:An optional string containing the object creation mode:
+            - I{'any'} means the configFS object will be either looked up
+              or created.
+            - I{'lookup'} means the object MUST already exist configFS.
+            - I{'create'} means the object must NOT already exist in configFS.
+        @type mode:string
+        @return: A Host object.
+        '''
+        super(Host, self).__init__()
+
+        self.nqn = nqn
+        self._path = "%s/hosts/%s" % (self.configfs_dir, nqn)
+        self._create_in_cfs(mode)
+
+    @classmethod
+    def setup(cls, t, err_func):
+        '''
+        Set up Host objects based upon t dict, from saved config.
+        Guard against missing or bad dict items, but keep going.
+        Call 'err_func' for each error.
+        '''
+
+        if 'nqn' not in t:
+            err_func("'nqn' not defined for Host")
+            return
+
+        try:
+            h = Host(t['nqn'])
+        except CFSError as e:
+            err_func("Could not create Host object: %s" % e)
+            return
+
+    def dump(self):
+        d = super(Host, self).dump()
+        d['nqn'] = self.nqn
         return d
 
 
