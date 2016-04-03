@@ -137,7 +137,7 @@ class UISubsystemsNode(UINode):
 
         SEE ALSO
         ========
-        B{delete}
+        B{create}
         '''
         subsystem = nvme.Subsystem(nqn, mode='lookup')
         subsystem.delete()
@@ -181,7 +181,7 @@ class UINamespacesNode(UINode):
 
         SEE ALSO
         ========
-        B{delete}
+        B{create}
         '''
         namespace = nvme.Namespace(self.parent.cfnode, nsid, mode='lookup')
         namespace.delete()
@@ -267,7 +267,7 @@ class UIPortsNode(UINode):
 
         SEE ALSO
         ========
-        B{delete}
+        B{create}
         '''
         port = nvme.Port(self.parent.parent.cfnode, portid, mode='lookup')
         port.delete()
