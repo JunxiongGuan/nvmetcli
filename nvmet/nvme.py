@@ -370,14 +370,14 @@ class Subsystem(CFSNode):
     '''
 
     def __repr__(self):
-        return "<Namespace %s>" % self.nqn
+        return "<Subsystem %s>" % self.nqn
 
     def __init__(self, nqn=None, mode='any'):
         '''
-        @param nqn: The Subsystems's NQN.
+        @param nqn: The Subsystems' NQN.
             If no NQN is specified, one will be generated.
         @type nqn: string
-        @param mode:An optionnal string containing the object creation mode:
+        @param mode:An optional string containing the object creation mode:
             - I{'any'} means the configFS object will be either looked up
               or created.
             - I{'lookup'} means the object MUST already exist configFS.
@@ -408,7 +408,7 @@ class Subsystem(CFSNode):
 
     def delete(self):
         '''
-        Recursively deletes a Subsystems object.
+        Recursively deletes a Subsystem object.
         This will delete all attached Namespace objects and then the
         Subsystem itself.
         '''
@@ -423,7 +423,7 @@ class Subsystem(CFSNode):
     @classmethod
     def setup(cls, t, err_func):
         '''
-        Set up Subsystems objects based upon t dict, from saved config.
+        Set up Subsystem objects based upon t dict, from saved config.
         Guard against missing or bad dict items, but keep going.
         Call 'err_func' for each error.
         '''
@@ -457,7 +457,7 @@ class Namespace(CFSNode):
     MAX_NSID = 8192
 
     def __repr__(self):
-        return "<Namspace %d>" % self.nsid
+        return "<Namespace %d>" % self.nsid
 
     def __init__(self, subsystem, nsid=None, mode='any'):
         '''
@@ -465,7 +465,7 @@ class Namespace(CFSNode):
         @param nsid: The Namespace identifier
             If no nsid is specified, the next free one will be used.
         @type nsid: int
-        @param mode:An optionnal string containing the object creation mode:
+        @param mode:An optional string containing the object creation mode:
             - I{'any'} means the configFS object will be either looked up
               or created.
             - I{'lookup'} means the object MUST already exist configFS.
