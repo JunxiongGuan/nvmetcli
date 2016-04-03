@@ -106,7 +106,7 @@ class CFSNode(object):
         '''
         self._check_self()
 
-        names = [os.path.basename(name).split('_')[1]
+        names = [os.path.basename(name).split('_', 1)[1]
                  for name in glob("%s/%s_*" % (self._path, group))
                      if os.path.isfile(name)]
 
