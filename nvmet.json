@@ -1,4 +1,5 @@
 {
+  "hosts": [], 
   "ports": [
     {
       "addr": {
@@ -8,21 +9,19 @@
         "trsvcid": "1023", 
         "trtype": "rdma"
       }, 
-      "enable": 1, 
-      "portid": 2
+      "portid": 2, 
+      "subsystems": [
+        "nqn.2014-08.org.nvmexpress:NVMf:uuid:77dca664-0d3e-4f67-b8b2-04c70e3f991d"
+      ]
     }
   ], 
   "subsystems": [
     {
+      "allowed_hosts": [], 
+      "attr": {
+        "allow_any_host": "1"
+      }, 
       "namespaces": [
-        {
-          "device": {
-            "nguid": "8a6a2e57-1a2d-2b41-8938-bc409c4ebb6c", 
-            "path": "/dev/ram0"
-          }, 
-          "enable": 0, 
-          "nsid": 2
-        }, 
         {
           "device": {
             "nguid": "289ae029-c396-3143-87e8-aec0d7a4b1a8", 
@@ -30,6 +29,14 @@
           }, 
           "enable": 1, 
           "nsid": 1
+        }, 
+        {
+          "device": {
+            "nguid": "8a6a2e57-1a2d-2b41-8938-bc409c4ebb6c", 
+            "path": "/dev/ram0"
+          }, 
+          "enable": 0, 
+          "nsid": 2
         }
       ], 
       "nqn": "nqn.2014-08.org.nvmexpress:NVMf:uuid:77dca664-0d3e-4f67-b8b2-04c70e3f991d"

@@ -305,10 +305,10 @@ class Root(CFSNode):
         Remove entire current configuration.
         '''
 
-        for s in self.subsystems:
-            s.delete()
         for p in self.ports:
             p.delete()
+        for s in self.subsystems:
+            s.delete()
         for h in self.hosts:
             h.delete()
 
@@ -628,6 +628,41 @@ class Port(CFSNode):
     portid = property(_get_portid,
             doc="Get the Port ID as an int.")
 
+    def _list_subsystems(self):
+        return [os.path.basename(name)
+                for name in os.listdir("%s/subsystems/" % self._path)]
+
+    subsystems = property(_list_subsystems,
+                          doc="Get the list of Subsystem for this Port.")
+
+    def add_subsystem(self, nqn):
+        '''
+        Enable access to the Subsystem identified by I{nqn} through this Port.
+        '''
+        try:
+            os.symlink("%s/subsystems/%s" % (self.configfs_dir, nqn),
+                       "%s/subsystems/%s" % (self._path, nqn))
+        except Exception as e:
+            raise CFSError("Could not symlink %s in configFS: %s" % (nqn, e))
+
+    def remove_subsystem(self, nqn):
+        '''
+        Disable access to the Subsystem identified by I{nqn} through this Port.
+        '''
+        try:
+            os.unlink("%s/subsystems/%s" % (self._path, nqn))
+        except Exception as e:
+            raise CFSError("Could not unlink %s in configFS: %s" % (nqn, e))
+
+    def delete(self):
+        '''
+        Recursively deletes a Port object.
+        '''
+        self._check_self()
+        for s in self.subsystems:
+            self.remove_subsystem(s);
+        super(Port, self).delete()
+
     @classmethod
     def setup(cls, root, n, err_func):
         '''
@@ -647,10 +682,13 @@ class Port(CFSNode):
             return
 
         port._setup_attrs(n, err_func)
+        for s in n.get('subsystems', []):
+            port.add_subsystem(s)
 
     def dump(self):
         d = super(Port, self).dump()
         d['portid'] = self.portid
+        d['subsystems'] = self.subsystems
         return d
 
 

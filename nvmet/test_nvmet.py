@@ -198,13 +198,16 @@ class TestNvmet(unittest.TestCase):
         root = nvme.Root()
         root.clear_existing()
 
+        s = nvme.Subsystem(nqn='testnqn', mode='create')
         p = nvme.Port(root, portid=0, mode='create')
 
-        self.assertFalse(p.get_enable())
+        # subsystem doesn't exists, should fail
+        self.assertRaises(nvme.CFSError, p.add_subsystem, 'invalidnqn')
+
         self.assertTrue('addr' in p.attr_groups)
 
         # no trtype set yet, should fail
-        self.assertRaises(nvme.CFSError, p.set_enable, 1)
+        self.assertRaises(nvme.CFSError, p.add_subsystem, 'testnqn')
 
         # now set trtype to loop and other attrs and enable
         p.set_attr('addr', 'trtype', 'loop')
@@ -212,11 +215,10 @@ class TestNvmet(unittest.TestCase):
         p.set_attr('addr', 'traddr', '192.168.0.1')
         p.set_attr('addr', 'treq', 'not required')
         p.set_attr('addr', 'trsvcid', '1023')
-        p.set_enable(1)
-        self.assertTrue(p.get_enable())
+        p.add_subsystem('testnqn')
 
-        # test double enable
-        p.set_enable(1)
+        # test double add
+        self.assertRaises(nvme.CFSError, p.add_subsystem, 'testnqn')
 
         # test that we can't write to attrs while enabled
         self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'trtype',
@@ -230,9 +232,9 @@ class TestNvmet(unittest.TestCase):
         self.assertRaises(nvme.CFSError, p.set_attr, 'addr', 'trsvcid',
                           '21')
 
-        # disable: once and twice
-        p.set_enable(0)
-        p.set_enable(0)
+        # remove: once and twice
+        p.remove_subsystem('testnqn')
+        self.assertRaises(nvme.CFSError, p.remove_subsystem, 'testnqn')
 
         # check that the attrs haven't been tampered with
         self.assertEqual(p.get_attr('addr', 'trtype'), 'loop')
@@ -241,8 +243,8 @@ class TestNvmet(unittest.TestCase):
         self.assertEqual(p.get_attr('addr', 'treq'), 'not required')
         self.assertEqual(p.get_attr('addr', 'trsvcid'), '1023')
 
-        # enable again, and remove while enabled
-        p.set_enable(1)
+        # add again, and try to remove while enabled
+        p.add_subsystem('testnqn')
         p.delete()
 
     def test_host(self):
@@ -352,7 +354,7 @@ class TestNvmet(unittest.TestCase):
         p.set_attr('addr', 'traddr', '192.168.0.1')
         p.set_attr('addr', 'treq', 'not required')
         p.set_attr('addr', 'trsvcid', '1023')
-        p.set_enable(1)
+        p.add_subsystem('testnqn')
 
         # save, clear, and restore
         root.save_to_file('test.json')
@@ -387,3 +389,5 @@ class TestNvmet(unittest.TestCase):
         self.assertEqual(p.get_attr('addr', 'traddr'), '192.168.0.1')
         self.assertEqual(p.get_attr('addr', 'treq'), 'not required')
         self.assertEqual(p.get_attr('addr', 'trsvcid'), '1023')
+        self.assertIn('testnqn', p.subsystems)
+        self.assertNotIn('testtnqn2', p.subsystems)

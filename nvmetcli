@@ -339,47 +339,73 @@ class UIPortsNode(UINode):
 class UIPortNode(UINode):
     def __init__(self, parent, cfnode):
         UINode.__init__(self, str(cfnode.portid), parent, cfnode)
+        UIPortSubsystemsNode(self)
 
     def status(self):
         if self.cfnode.get_enable():
             return "enabled"
         return "disabled"
 
-    def ui_command_enable(self):
+
+class UIPortSubsystemsNode(UINode):
+    def __init__(self, parent):
+        UINode.__init__(self, 'subsystems', parent)
+
+    def refresh(self):
+        self._children = set([])
+        for host in self.parent.cfnode.subsystems:
+            UIPortSubsystemNode(self, host)
+
+    def ui_command_create(self, nqn):
         '''
-        Enables the current Port.
+        Grants access to the subsystem specified by I{nqn} through the
+        parent port.
 
         SEE ALSO
         ========
-        B{disable}
+        B{delete}
         '''
-        if self.cfnode.get_enable():
-            self.shell.log.info("The Port is already enabled.")
-        else:
-            try:
-                self.cfnode.set_enable(1)
-                self.shell.log.info("The Port has been enabled.")
-            except Exception as e:
-                raise configshell.ExecutionError(
-                    "The Port could not be enabled.")
+        self.parent.cfnode.add_subsystem(nqn)
+        UIPortSubsystemNode(self, nqn)
 
-    def ui_command_disable(self):
+    def ui_complete_create(self, parameters, text, current_param):
+        completions = []
+        if current_param == 'nqn':
+            for subsys in self.get_node('/subsystems').children:
+                completions.append(subsys.cfnode.nqn)
+
+        if len(completions) == 1:
+            return [completions[0] + ' ']
+        else:
+            return completions
+
+    def ui_command_delete(self, nqn):
         '''
-        Disables the current Port.
+        Removes access to the subsystem specified by I{nqn} through the
+        parent port.
 
         SEE ALSO
         ========
-        B{enable}
+        B{create}
         '''
-        if not self.cfnode.get_enable():
-            self.shell.log.info("The Port is already disabled.")
+        self.parent.cfnode.remove_subsystem(nqn)
+        self.refresh()
+
+    def ui_complete_delete(self, parameters, text, current_param):
+        completions = []
+        if current_param == 'nqn':
+            for nqn in self.parent.cfnode.subsystems:
+                completions.append(nqn)
+
+        if len(completions) == 1:
+            return [completions[0] + ' ']
         else:
-            try:
-                self.cfnode.set_enable(0)
-                self.shell.log.info("The Port has been disabled.")
-            except Exception as e:
-                raise configshell.ExecutionError(
-                    "The Port could not be disabled.")
+            return completions
+
+
+class UIPortSubsystemNode(UINode):
+    def __init__(self, parent, nqn):
+        UINode.__init__(self, nqn, parent)
 
 
 class UIHostsNode(UINode):
