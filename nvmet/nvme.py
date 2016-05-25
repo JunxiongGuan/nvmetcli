@@ -422,11 +422,6 @@ class Subsystem(CFSNode):
         name = str(uuid.uuid4())
         return "%s:%s" % (prefix, name)
 
-    def _list_namespaces(self):
-        self._check_self()
-        for d in os.listdir("%s/namespaces/" % self._path):
-            yield Namespace(self, int(d), 'lookup')
-
     def delete(self):
         '''
         Recursively deletes a Subsystem object.
@@ -439,6 +434,11 @@ class Subsystem(CFSNode):
         for h in self.allowed_hosts:
             self.remove_allowed_host(h)
         super(Subsystem, self).delete()
+
+    def _list_namespaces(self):
+        self._check_self()
+        for d in os.listdir("%s/namespaces/" % self._path):
+            yield Namespace(self, int(d), 'lookup')
 
     namespaces = property(_list_namespaces,
                           doc="Get the list of Namespaces for the Subsystem.")
@@ -592,8 +592,7 @@ class Namespace(CFSNode):
 
 class Port(CFSNode):
     '''
-    This is an interface to a NVMe Namespace in configFS.
-    A Namespace is identified by its parent Subsystem and Namespace ID.
+    This is an interface to a NVMe Port in configFS.
     '''
 
     MAX_PORTID = 8192
@@ -625,8 +624,7 @@ class Port(CFSNode):
     def _get_portid(self):
         return self._portid
 
-    portid = property(_get_portid,
-            doc="Get the Port ID as an int.")
+    portid = property(_get_portid, doc="Get the Port ID as an int.")
 
     def _list_subsystems(self):
         return [os.path.basename(name)
@@ -660,7 +658,7 @@ class Port(CFSNode):
         '''
         self._check_self()
         for s in self.subsystems:
-            self.remove_subsystem(s);
+            self.remove_subsystem(s)
         super(Port, self).delete()
 
     @classmethod
