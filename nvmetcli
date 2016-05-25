@@ -340,6 +340,7 @@ class UIPortNode(UINode):
     def __init__(self, parent, cfnode):
         UINode.__init__(self, str(cfnode.portid), parent, cfnode)
         UIPortSubsystemsNode(self)
+        UIReferralsNode(self)
 
     def status(self):
         if self.cfnode.get_enable():
@@ -406,6 +407,85 @@ class UIPortSubsystemsNode(UINode):
 class UIPortSubsystemNode(UINode):
     def __init__(self, parent, nqn):
         UINode.__init__(self, nqn, parent)
+
+
+class UIReferralsNode(UINode):
+    def __init__(self, parent):
+        UINode.__init__(self, 'referrals', parent)
+
+    def refresh(self):
+        self._children = set([])
+        for r in self.parent.cfnode.referrals:
+            UIReferralNode(self, r)
+
+    def ui_command_create(self, name):
+        '''
+        Creates a new referral.
+
+        SEE ALSO
+        ========
+        B{delete}
+        '''
+        r = nvme.Referral(self.parent.cfnode, name, mode='create')
+        UIReferralNode(self, r)
+
+    def ui_command_delete(self, name):
+        '''
+        Deletes the referral with the specified I{name}.
+
+        SEE ALSO
+        ========
+        B{create}
+        '''
+        r = nvme.Referral(self.parent.cfnode, name, mode='lookup')
+        r.delete()
+        self.refresh()
+
+
+class UIReferralNode(UINode):
+    def __init__(self, parent, cfnode):
+        UINode.__init__(self, cfnode.name, parent, cfnode)
+
+    def status(self):
+        if self.cfnode.get_enable():
+            return "enabled"
+        return "disabled"
+
+    def ui_command_enable(self):
+        '''
+        Enables the current Referral.
+
+        SEE ALSO
+        ========
+        B{disable}
+        '''
+        if self.cfnode.get_enable():
+            self.shell.log.info("The Referral is already enabled.")
+        else:
+            try:
+                self.cfnode.set_enable(1)
+                self.shell.log.info("The Referral has been enabled.")
+            except Exception as e:
+                raise configshell.ExecutionError(
+                    "The Referral could not be enabled.")
+
+    def ui_command_disable(self):
+        '''
+        Disables the current Referral.
+
+        SEE ALSO
+        ========
+        B{enable}
+        '''
+        if not self.cfnode.get_enable():
+            self.shell.log.info("The Referral is already disabled.")
+        else:
+            try:
+                self.cfnode.set_enable(0)
+                self.shell.log.info("The Referral has been disabled.")
+            except Exception as e:
+                raise configshell.ExecutionError(
+                    "The Referral could not be disabled.")
 
 
 class UIHostsNode(UINode):

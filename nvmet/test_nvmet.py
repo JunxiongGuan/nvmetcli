@@ -283,6 +283,89 @@ class TestNvmet(unittest.TestCase):
             h.delete()
         self.assertEqual(len(list(root.hosts)), 0)
 
+    def test_referral(self):
+        root = nvme.Root()
+        root.clear_existing()
+
+        # create port
+        p = nvme.Port(root, mode='create')
+        self.assertEqual(len(list(p.referrals)), 0)
+
+        # create mode
+        r1 = nvme.Referral(p, name="1", mode='create')
+        self.assertIsNotNone(r1)
+        self.assertEqual(len(list(p.referrals)), 1)
+
+        # any mode, should create
+        r2 = nvme.Referral(p, name="2", mode='any')
+        self.assertIsNotNone(r2)
+        self.assertEqual(len(list(p.referrals)), 2)
+
+        # duplicate
+        self.assertRaises(nvme.CFSError, nvme.Referral,
+                          p, name="2", mode='create')
+        self.assertEqual(len(list(p.referrals)), 2)
+
+        # lookup using any, should not create
+        r = nvme.Referral(p, name="1", mode='any')
+        self.assertEqual(r1, r)
+        self.assertEqual(len(list(p.referrals)), 2)
+
+        # lookup only
+        r = nvme.Referral(p, name="2", mode='lookup')
+        self.assertEqual(r2, r)
+        self.assertEqual(len(list(p.referrals)), 2)
+
+        # non-existant lookup
+        self.assertRaises(nvme.CFSError, nvme.Referral, p, name="foo",
+                          mode='lookup')
+
+        # basic state
+        self.assertTrue('addr' in r.attr_groups)
+        self.assertFalse(r.get_enable())
+
+        # now set trtype to loop and other attrs and enable
+        r.set_attr('addr', 'trtype', 'loop')
+        r.set_attr('addr', 'adrfam', 'ipv4')
+        r.set_attr('addr', 'traddr', '192.168.0.1')
+        r.set_attr('addr', 'treq', 'not required')
+        r.set_attr('addr', 'trsvcid', '1023')
+        r.set_enable(1)
+
+        # test double enable
+        r.set_enable(1)
+
+        # test that we can't write to attrs while enabled
+        self.assertRaises(nvme.CFSError, r.set_attr, 'addr', 'trtype',
+                          'rdma')
+        self.assertRaises(nvme.CFSError, r.set_attr, 'addr', 'adrfam',
+                          'ipv6')
+        self.assertRaises(nvme.CFSError, r.set_attr, 'addr', 'traddr',
+                          '10.0.0.1')
+        self.assertRaises(nvme.CFSError, r.set_attr, 'addr', 'treq',
+                          'required')
+        self.assertRaises(nvme.CFSError, r.set_attr, 'addr', 'trsvcid',
+                          '21')
+
+        # disable: once and twice
+        r.set_enable(0)
+        r.set_enable(0)
+
+        # check that the attrs haven't been tampered with
+        self.assertEqual(r.get_attr('addr', 'trtype'), 'loop')
+        self.assertEqual(r.get_attr('addr', 'adrfam'), 'ipv4')
+        self.assertEqual(r.get_attr('addr', 'traddr'), '192.168.0.1')
+        self.assertEqual(r.get_attr('addr', 'treq'), 'not required')
+        self.assertEqual(r.get_attr('addr', 'trsvcid'), '1023')
+
+        # enable again, and try to remove while enabled
+        r.set_enable(1)
+        r.delete()
+
+        # remove the other one while disabled:
+        r1.delete()
+        self.assertEqual(len(list(p.referrals)), 0)
+
     def test_allowed_hosts(self):
         root = nvme.Root()
 

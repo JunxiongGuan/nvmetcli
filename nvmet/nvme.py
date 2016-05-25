@@ -659,7 +659,17 @@ class Port(CFSNode):
         self._check_self()
         for s in self.subsystems:
             self.remove_subsystem(s)
+        for r in self.referrals:
+            r.delete()
         super(Port, self).delete()
+
+    def _list_referrals(self):
+        self._check_self()
+        for d in os.listdir("%s/referrals/" % self._path):
+            yield Referral(self, d, 'lookup')
+
+    referrals = property(_list_referrals,
+                         doc="Get the list of Referrals for this Port.")
 
     @classmethod
     def setup(cls, root, n, err_func):
@@ -682,11 +692,65 @@ class Port(CFSNode):
         port._setup_attrs(n, err_func)
         for s in n.get('subsystems', []):
             port.add_subsystem(s)
+        for r in n.get('referrals', []):
+            Referral.setup(port, r, err_func)
 
     def dump(self):
         d = super(Port, self).dump()
         d['portid'] = self.portid
         d['subsystems'] = self.subsystems
+        d['referrals'] = [r.dump() for r in self.referrals]
+        return d
+
+
+class Referral(CFSNode):
+    '''
+    This is an interface to a NVMe Referral in configFS.
+    '''
+
+    def __repr__(self):
+        return "<Referral %d>" % self.name
+
+    def __init__(self, port, name, mode='any'):
+        super(Referral, self).__init__()
+
+        if not isinstance(port, Port):
+            raise CFSError("Invalid parent class")
+
+        self.attr_groups = ['addr']
+        self.port = port
+        self._name = name
+        self._path = "%s/referrals/%s" % (self.port.path, self._name)
+        self._create_in_cfs(mode)
+
+    def _get_name(self):
+        return self._name
+
+    name = property(_get_name, doc="Get the Referral name.")
+
+    @classmethod
+    def setup(cls, port, n, err_func):
+        '''
+        Set up a Referral based upon n dict, from saved config.
+        Guard against missing or bad dict items, but keep going.
+        Call 'err_func' for each error.
+        '''
+
+        if 'name' not in n:
+            err_func("'name' not defined for Referral")
+            return
+
+        try:
+            r = Referral(port, n['name'])
+        except CFSError as e:
+            err_func("Could not create Referral object: %s" % e)
+            return
+
+        r._setup_attrs(n, err_func)
+
+    def dump(self):
+        d = super(Referral, self).dump()
+        d['name'] = self.name
         return d
 
 
