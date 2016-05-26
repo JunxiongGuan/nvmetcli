@@ -155,39 +155,29 @@ class TestNvmet(unittest.TestCase):
             self.assertTrue(False, 'Found Port after clear')
 
         # create mode
-        p1 = nvme.Port(root, portid=0, mode='create')
+        p1 = nvme.Port(portid=0, mode='create')
         self.assertIsNotNone(p1)
         self.assertEqual(len(list(root.ports)), 1)
 
         # any mode, should create
-        p2 = nvme.Port(root, portid=1, mode='any')
+        p2 = nvme.Port(portid=1, mode='any')
         self.assertIsNotNone(p2)
         self.assertEqual(len(list(root.ports)), 2)
 
-        # automatic portid
-        p3 = nvme.Port(root, mode='create')
-        self.assertIsNotNone(p3)
-        self.assertNotEqual(p3, p1)
-        self.assertNotEqual(p3, p2)
-        self.assertEqual(len(list(root.ports)), 3)
-
         # duplicate
         self.assertRaises(nvme.CFSError, nvme.Port,
-                          root, portid=0, mode='create')
-        self.assertEqual(len(list(root.ports)), 3)
+                          portid=0, mode='create')
+        self.assertEqual(len(list(root.ports)), 2)
 
         # lookup using any, should not create
-        p = nvme.Port(root, portid=0, mode='any')
+        p = nvme.Port(portid=0, mode='any')
         self.assertEqual(p1, p)
-        self.assertEqual(len(list(root.ports)), 3)
+        self.assertEqual(len(list(root.ports)), 2)
 
         # lookup only
-        p = nvme.Port(root, portid=1, mode='lookup')
+        p = nvme.Port(portid=1, mode='lookup')
         self.assertEqual(p2, p)
-        self.assertEqual(len(list(root.ports)), 3)
-
-        # lookup without portid
-        self.assertRaises(nvme.CFSError, nvme.Port, root, mode='lookup')
+        self.assertEqual(len(list(root.ports)), 2)
 
         # and delete them all
         for p in root.ports:
@@ -199,7 +189,7 @@ class TestNvmet(unittest.TestCase):
         root.clear_existing()
 
         s = nvme.Subsystem(nqn='testnqn', mode='create')
-        p = nvme.Port(root, portid=0, mode='create')
+        p = nvme.Port(portid=0, mode='create')
 
         # subsystem doesn't exists, should fail
         self.assertRaises(nvme.CFSError, p.add_subsystem, 'invalidnqn')
@@ -288,7 +278,7 @@ class TestNvmet(unittest.TestCase):
         root.clear_existing()
 
         # create port
-        p = nvme.Port(root, mode='create')
+        p = nvme.Port(portid=1, mode='create')
         self.assertEqual(len(list(p.referrals)), 0)
 
         # create mode
@@ -411,7 +401,7 @@ class TestNvmet(unittest.TestCase):
                           nqn=discover_nqn, mode='create')
 
         self.assertRaises(nvme.CFSError, nvme.Port,
-                          root=root, portid=1 << 17, mode='create')
+                          portid=1 << 17, mode='create')
 
     def test_save_restore(self):
         root = nvme.Root()
@@ -431,7 +421,7 @@ class TestNvmet(unittest.TestCase):
 
         nguid = n.get_attr('device', 'nguid')
 
-        p = nvme.Port(root, portid=66, mode='create')
+        p = nvme.Port(portid=66, mode='create')
         p.set_attr('addr', 'trtype', 'loop')
         p.set_attr('addr', 'adrfam', 'ipv4')
         p.set_attr('addr', 'traddr', '192.168.0.1')
@@ -456,7 +446,7 @@ class TestNvmet(unittest.TestCase):
         s = nvme.Subsystem(nqn='testnqn', mode='lookup')
         s2 = nvme.Subsystem(nqn='testnqn2', mode='lookup')
         n = nvme.Namespace(s, nsid=42, mode='lookup')
-        p = nvme.Port(root, portid=66, mode='lookup')
+        p = nvme.Port(portid=66, mode='lookup')
 
         self.assertEqual(s.get_attr('attr', 'allow_any_host'), "0")
         self.assertEqual(s2.get_attr('attr', 'allow_any_host'), "1")

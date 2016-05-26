@@ -310,16 +310,15 @@ class UIPortsNode(UINode):
         for port in self.parent.cfnode.ports:
             UIPortNode(self, port)
 
-    def ui_command_create(self, portid):
+    def ui_command_create(self, portid=None):
         '''
-        Creates a new NVMe port. If I{port} is ommited, then the new Port
-        will use the next available portid.
+        Creates a new NVMe port with portid I{portid}.
 
         SEE ALSO
         ========
         B{delete}
         '''
-        port = nvme.Port(self.parent.parent.cfnode, portid, mode='create')
+        port = nvme.Port(portid, mode='create')
         UIPortNode(self, port)
 
     def ui_command_delete(self, portid):
@@ -331,7 +330,7 @@ class UIPortsNode(UINode):
         ========
         B{create}
         '''
-        port = nvme.Port(self.parent.parent.cfnode, portid, mode='lookup')
+        port = nvme.Port(portid, mode='lookup')
         port.delete()
         self.refresh()
 

@@ -267,7 +267,7 @@ class Root(CFSNode):
         self._check_self()
 
         for d in os.listdir("%s/ports/" % self._path):
-            yield Port(self, d, 'lookup')
+            yield Port(d, 'lookup')
 
     ports = property(_list_ports,
                 doc="Get the list of Ports.")
@@ -600,25 +600,12 @@ class Port(CFSNode):
     def __repr__(self):
         return "<Port %d>" % self.portid
 
-    def __init__(self, root, portid=None, mode='any'):
+    def __init__(self, portid, mode='any'):
         super(Port, self).__init__()
 
-        if portid is None:
-            portids = [p.portid for p in root.ports]
-            for index in xrange(0, 1 << 16):
-                if index not in portids:
-                    portid = index
-                    break
-            if portid is None:
-                raise CFSError("All Port IDs 0-%d in use" % 1 << 16)
-        else:
-            portid = int(portid)
-            if portid < 0 or portid > self.MAX_PORTID:
-                raise CFSError("Port ID must be 0 to %d" % self.MAX_PORTID)
-
         self.attr_groups = ['addr']
-        self._portid = portid
-        self._path = "%s/ports/%d" % (self.configfs_dir, portid)
+        self._portid = int(portid)
+        self._path = "%s/ports/%d" % (self.configfs_dir, self._portid)
         self._create_in_cfs(mode)
 
     def _get_portid(self):
@@ -684,7 +671,7 @@ class Port(CFSNode):
             return
 
         try:
-            port = Port(root, n['portid'])
+            port = Port(n['portid'])
         except CFSError as e:
             err_func("Could not create Port object: %s" % e)
             return
