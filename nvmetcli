@@ -146,6 +146,10 @@ class UISubsystemsNode(UINode):
 
 
 class UISubsystemNode(UINode):
+    ui_desc_attr = {
+        'allow_any_host': ('string', 'Allow access by any host if set to 1'),
+    }
+
     def __init__(self, parent, cfnode):
         UINode.__init__(self, cfnode.nqn, parent, cfnode)
 
@@ -336,6 +340,14 @@ class UIPortsNode(UINode):
 
 
 class UIPortNode(UINode):
+    ui_desc_addr = {
+        'adrfam': ('string', 'Address Family (e.g. ipv4)'),
+        'treq': ('string', 'Transport Security Requirements'),
+        'traddr': ('string', 'Transport Address (e.g. IP Address)'),
+        'trsvcid': ('string', 'Transport Service ID (e.g. IP Port)'),
+        'trtype': ('string', 'Transport Type (e.g. rdma or loop)'),
+    }
+
     def __init__(self, parent, cfnode):
         UINode.__init__(self, str(cfnode.portid), parent, cfnode)
         UIPortSubsystemsNode(self)
@@ -442,6 +454,15 @@ class UIReferralsNode(UINode):
 
 
 class UIReferralNode(UINode):
+    ui_desc_addr = {
+        'adrfam': ('string', 'Address Family (e.g. ipv4)'),
+        'treq': ('string', 'Transport Security Requirements'),
+        'traddr': ('string', 'Transport Address (e.g. IP Address)'),
+        'trsvcid': ('string', 'Transport Service ID (e.g. IP Port)'),
+        'trtype': ('string', 'Transport Type (e.g. rdma or loop)'),
+        'portid': ('int', 'Port identifier'),
+    }
+
     def __init__(self, parent, cfnode):
         UINode.__init__(self, cfnode.name, parent, cfnode)
 
