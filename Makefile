@@ -38,6 +38,24 @@ build/release-stamp:
 	@echo "Fixing version string..."
 	@sed -i "s/__version__ = .*/__version__ = '${VERSION}'/g" \
 		build/${PKGNAME}-${VERSION}/${NAME}/__init__.py
+	@echo "Generating debian changelog..."
+	@( \
+		version=${VERSION}; \
+		author=$$(git show HEAD --format="format:%an <%ae>" -s); \
+		date=$$(git show HEAD --format="format:%aD" -s); \
+		day=$$(git show HEAD --format='format:%ai' -s \
+			| awk '{print $$1}' \
+			| awk -F '-' '{print $$3}' | sed 's/^0/ /g'); \
+		date=$$(echo $${date} \
+			| awk '{print $$1, "'"$${day}"'", $$3, $$4, $$5, $$6}'); \
+		hash=$$(git show HEAD --format="format:%H" -s); \
+		echo "${PKGNAME} ($${version}) unstable; urgency=low"; \
+		echo; \
+		echo "  * Generated from git commit $${hash}."; \
+		echo; \
+		echo " -- $${author}  $${date}"; \
+		echo; \
+	) > build/${PKGNAME}-${VERSION}/debian/changelog
 	@find build/${PKGNAME}-${VERSION}/ -exec \
 		touch -t $$(date -d @$$(git show -s --format="format:%at") \
 			+"%Y%m%d%H%M.%S") {} \;
@@ -50,3 +68,13 @@ build/release-stamp:
 	@echo "Generated release tarball:"
 	@echo "    $$(ls dist/${PKGNAME}-${VERSION}.tar.gz)"
 	@touch build/release-stamp
+
+deb: release build/deb-stamp
+build/deb-stamp:
+	@echo "Building debian packages..."
+	@cd build/${PKGNAME}-${VERSION}; \
+		dpkg-buildpackage -rfakeroot -us -uc
+	@mv build/*_${VERSION}_*.deb dist/
+	@echo "Generated debian packages:"
+	@for pkg in $$(ls dist/*_${VERSION}_*.deb); do echo "  $${pkg}"; done
+	@touch build/deb-stamp
