@@ -1,0 +1,15 @@
+[Unit]
+Description=Restore NVMe kernel target configuration
+Requires=sys-kernel-config.mount
+After=sys-kernel-config.mount network.target local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/sbin/nvmetcli restore
+ExecStop=/usr/sbin/nvmetcli clear
+SyslogIdentifier=nvmetcli
+
+[Install]
+WantedBy=multi-user.target
+

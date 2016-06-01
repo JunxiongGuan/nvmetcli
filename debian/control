@@ -2,7 +2,7 @@ Source: nvmetcli
 Section: python
 Priority: optional
 Maintainer: Christoph Hellwig <hch@lst.de>
-Build-Depends: debhelper(>= 8), python, python-setuptools, dh-python
+Build-Depends: debhelper(>= 8), python, python-setuptools, dh-python, dh-systemd  (>= 1.5)
 Standards-Version: 3.9.4
 
 Package: nvmetcli

@@ -8,7 +8,7 @@ export http_proxy = http://127.0.0.1:9
 
 
 %:
-	dh $@ --with python2
+	dh $@ --with python2 --with systemd
 
 override_dh_auto_build:
 	python setup.py build

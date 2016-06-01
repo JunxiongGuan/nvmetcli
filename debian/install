@@ -1,1 +1,2 @@
 nvmetcli		/usr/sbin
+nvmet.service		/lib/systemd/system
