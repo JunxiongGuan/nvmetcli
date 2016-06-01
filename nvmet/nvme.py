@@ -24,7 +24,7 @@ import uuid
 import json
 from glob import iglob as glob
 
-DEFAULT_SAVE_FILE = '/etc/nvmet.json'
+DEFAULT_SAVE_FILE = '/etc/nvmet/config.json'
 
 
 class CFSError(Exception):

@@ -98,7 +98,7 @@ Saving and restoring the configuration
 The saveconfig and restoreconfig commands inside nvmetcli save and restore
 the current configuration, but you can also invoke these commands for the
 command line using the load and restore arguments to nvmetcli.  Without
-an additional file name these operate on /etc/nvmet.json.
+an additional file name these operate on /etc/nvmet/config.json.
 
 To load the loop + explicit host version above do the following:
 
