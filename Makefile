@@ -6,6 +6,8 @@ VERSION = $$(basename $$(git describe --tags | tr - . | sed 's/^v//'))
 all:
 	@echo "Usage:"
 	@echo
+	@echo "  make deb         - Builds debian packages."
+	@echo "  make rpm         - Builds rpm packages."
 	@echo "  make release     - Generates the release tarball."
 	@echo
 	@echo "  make clean       - Cleanup the local repository build files."
@@ -56,6 +58,23 @@ build/release-stamp:
 		echo " -- $${author}  $${date}"; \
 		echo; \
 	) > build/${PKGNAME}-${VERSION}/debian/changelog
+	@echo "Generating rpm specfile from template..."
+	@cd build/${PKGNAME}-${VERSION}; \
+		for spectmpl in rpm/*.spec.tmpl; do \
+			sed -i "s/Version:.*/Version: ${VERSION}/g" $${spectmpl}; \
+			mv $${spectmpl} $$(basename $${spectmpl} .tmpl); \
+		done; \
+		rmdir rpm
+	@echo "Generating rpm changelog..."
+	@( \
+		version=${VERSION}; \
+		author=$$(git show HEAD --format="format:%an <%ae>" -s); \
+		date=$$(git show HEAD --format="format:%ad" -s \
+			| awk '{print $$1,$$2,$$3,$$5}'); \
+		hash=$$(git show HEAD --format="format:%H" -s); \
+		echo '* '"$${date} $${author} $${version}-1"; \
+		echo "  - Generated from git commit $${hash}."; \
+	) >> $$(ls build/${PKGNAME}-${VERSION}/*.spec)
 	@find build/${PKGNAME}-${VERSION}/ -exec \
 		touch -t $$(date -d @$$(git show -s --format="format:%at") \
 			+"%Y%m%d%H%M.%S") {} \;
@@ -78,3 +97,17 @@ build/deb-stamp:
 	@echo "Generated debian packages:"
 	@for pkg in $$(ls dist/*_${VERSION}_*.deb); do echo "  $${pkg}"; done
 	@touch build/deb-stamp
+
+rpm: release build/rpm-stamp
+build/rpm-stamp:
+	@echo "Building rpm packages..."
+	@mkdir -p build/rpm
+	@build=$$(pwd)/build/rpm; dist=$$(pwd)/dist/; rpmbuild \
+		--define "_topdir $${build}" --define "_sourcedir $${dist}" \
+		--define "_rpmdir $${build}" --define "_buildir $${build}" \
+		--define "_srcrpmdir $${build}" -ba build/${PKGNAME}-${VERSION}/*.spec
+	@mv build/rpm/*-${VERSION}*.src.rpm dist/
+	@mv build/rpm/*/*-${VERSION}*.rpm dist/
+	@echo "Generated rpm packages:"
+	@for pkg in $$(ls dist/*-${VERSION}*.rpm); do echo "  $${pkg}"; done
+	@touch build/rpm-stamp
