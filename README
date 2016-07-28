@@ -53,6 +53,13 @@ The following walks through an example using interactive mode.
 ...> create hostnqn
 
 #
+# remove access of a subsystem by deleting the Host NQN
+#
+
+...> cd /subsystems/testnqn/allowed_hosts/
+...> delete hostnqn
+
+#
 # Alternatively this allows any host to connect to the subsystsem.  Only
 # use this in tightly controller environments:
 #
@@ -65,7 +72,7 @@ The following walks through an example using interactive mode.
 # unused one will be used.
 #
 
-...> cd namespaces
+...> cd /subsystems/testnqn/namespaces
 ...> create 1
 ...> cd 1
 ...> set device path=/dev/nvme0n1
