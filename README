@@ -111,8 +111,23 @@ The following walks through an example using interactive mode.
 ...> cd subsystems/
 ...> create testnqn
 
-Referrals/Discovery
---------------------
+Discovery
+----------
+Each NVMe Target has a discovery controller mechanism that an NVMe
+Host can use to determine the NVM subsystems it has access too.
+nvmetcli can be used to add a new record to the discovery controller
+upon each new subsystem entry and port entry that the newly
+created subsystem entry binds too (see the '/port/' and
+'/subystem/' nvmetcli walk-through earlier in this README).  Each NVMe
+Host only gets to see the discovery entries defined in
+/subsystems/[NQN NAME]/allowed_hosts and the IP port it is connected
+to the NVMe Target.
+
+A Host can retrieve these discovery logs via the nvme-cli tool
+(https://github.com/linux-nvme/nvme-cli).
+
+Referrals
+---------
 TBD
 
 Saving and restoring the configuration
