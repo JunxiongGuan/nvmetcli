@@ -23,7 +23,7 @@ from __future__ import print_function
 import os
 import sys
 import configshell_fb as configshell
-import nvmet.nvme as nvme
+import nvmet as nvme
 
 
 class UINode(configshell.node.ConfigNode):
