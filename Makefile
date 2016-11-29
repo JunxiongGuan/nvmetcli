@@ -2,6 +2,7 @@ PKGNAME = nvmetcli
 NAME = nvmet
 GIT_BRANCH = $$(git branch | grep \* | tr -d \*)
 VERSION = $$(basename $$(git describe --tags | tr - . | sed 's/^v//'))
+DOCDIR = ./Documentation
 
 all:
 	@echo "Usage:"
@@ -9,13 +10,29 @@ all:
 	@echo "  make deb         - Builds debian packages."
 	@echo "  make rpm         - Builds rpm packages."
 	@echo "  make release     - Generates the release tarball."
+	@echo "  make doc         - Builds manpages & html docs in ${DOCDIR}."
 	@echo
 	@echo "  make clean       - Cleanup the local repository build files."
-	@echo "  make cleanall    - Also remove dist/*"
+	@echo "  make cleandoc    - Cleanup auto-generated docs in ${DOCDIR}."
+	@echo "  make cleanall    - Remove dist/*, build files, auto-gen docs."
+	@echo "  make installdoc  - Install man pages (need sudo)."
+	@echo "  make uninstalldoc  - Uninstall man pages (need sudo)."
 
 test:
 	@nose2 -C --coverage ./nvmet
 
+doc: ${NAME}
+	${MAKE} -C ${DOCDIR}
+
+installdoc:
+	${MAKE} -C ${DOCDIR} installdoc
+
+uninstalldoc:
+	${MAKE} -C ${DOCDIR} uninstalldoc
+
+cleandoc:
+	${MAKE} -C ${DOCDIR} clean
+	
 clean:
 	@rm -fv ${NAME}/*.pyc ${NAME}/*.html
 	@rm -frv doc
@@ -25,7 +42,7 @@ clean:
 	@rm -frv ${PKGNAME}-*
 	@echo "Finished cleanup."
 
-cleanall: clean
+cleanall: clean cleandoc
 	@rm -frv dist
 
 release: build/release-stamp
