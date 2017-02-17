@@ -3,6 +3,10 @@
 build-stamp
 build/*
 dist/*
-doc/*
 *.pyc
 *.pyc
+
+# generated documentation
+Documentation/*.1
+Documentation/*.xml
+Documentation/*.html
