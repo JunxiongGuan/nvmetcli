@@ -460,7 +460,7 @@ class UIReferralNode(UINode):
         'traddr': ('string', 'Transport Address (e.g. IP Address)'),
         'trsvcid': ('string', 'Transport Service ID (e.g. IP Port)'),
         'trtype': ('string', 'Transport Type (e.g. rdma or loop)'),
-        'portid': ('int', 'Port identifier'),
+        'portid': ('number', 'Port identifier'),
     }
 
     def __init__(self, parent, cfnode):
