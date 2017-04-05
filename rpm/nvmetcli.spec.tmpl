@@ -29,8 +29,6 @@ as well as saving / restoring the configuration to / from a json file.
 rm -rf %{buildroot}
 %{__python} setup.py install --skip-build --root=%{buildroot} --prefix=usr
 mkdir -p %{buildroot}%{_sysconfdir}/nvmet
-mkdir -p %{buildroot}/usr/sbin
-install -m 755 nvmetcli %{buildroot}/usr/sbin/nvmetcli
 mkdir -p %{buildroot}%{_unitdir}
 install -m 644 nvmet.service %{buildroot}%{_unitdir}/nvmet.service
 
