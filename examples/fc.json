@@ -1,0 +1,42 @@
+{
+  "hosts": [
+    {
+      "nqn": "hostnqn"
+    }
+  ], 
+  "ports": [
+    {
+      "addr": {
+        "adrfam": "fc", 
+        "traddr": "nn-0x1000000044001123:pn-0x2000000055001123", 
+        "treq": "not specified", 
+        "trsvcid": "none", 
+        "trtype": "fc"
+      }, 
+      "portid": 3, 
+      "referrals": [], 
+      "subsystems": [
+        "testnqn"
+      ]
+    }
+  ], 
+  "subsystems": [
+    {
+      "allowed_hosts": [], 
+      "attr": {
+        "allow_any_host": "1"
+      }, 
+      "namespaces": [
+        {
+          "device": {
+            "nguid": "ef90689c-6c46-d44c-89c1-4067801309a8", 
+            "path": "/dev/nvme0n1"
+          }, 
+          "enable": 1, 
+          "nsid": 1
+        }
+      ], 
+      "nqn": "testnqn"
+    }
+  ]
+}

@@ -33,6 +33,12 @@ after you've ensured that the IP address in rdma.json fits your setup:
 
   ./nvmetcli restore rdma.json
 
+Or to load the fc + no host authentication version do the following
+after you've ensured that the port traddr FC address information in
+fc.json fits your setup:
+
+  ./nvmetcli restore fc.json
+
 These files can also be edited directly using your favorite editor.
 
 Testing

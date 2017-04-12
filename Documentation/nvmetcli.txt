@@ -198,6 +198,19 @@ IANA assigned default port for NVMe over Fabrics using RDMA:
 ...> create testnqn
 --------------
 
+* or create an FC port. traddr is the WWNN/WWPN of the FC port.
+--------------
+...> cd /ports/
+...> create 3
+...> cd 3/
+...> set addr trtype=fc
+...> set addr adrfam=fc
+...> set addr traddr=nn-0x1000000044001123:pn-0x2000000055001123
+...> set addr trsvcid=none
+...> cd subsystems/
+...> create testnqn
+--------------
+
 * Saving the NVMe Target configuration:
 --------------
 ./nvmetcli

@@ -341,11 +341,11 @@ class UIPortsNode(UINode):
 
 class UIPortNode(UINode):
     ui_desc_addr = {
-        'adrfam': ('string', 'Address Family (e.g. ipv4)'),
+        'adrfam': ('string', 'Address Family (e.g. ipv4 or fc)'),
         'treq': ('string', 'Transport Security Requirements'),
-        'traddr': ('string', 'Transport Address (e.g. IP Address)'),
+        'traddr': ('string', 'Transport Address (e.g. IP Address or FC wwnn:wwpn)'),
         'trsvcid': ('string', 'Transport Service ID (e.g. IP Port)'),
-        'trtype': ('string', 'Transport Type (e.g. rdma or loop)'),
+        'trtype': ('string', 'Transport Type (e.g. rdma or loop or fc)'),
     }
 
     def __init__(self, parent, cfnode):
@@ -455,11 +455,11 @@ class UIReferralsNode(UINode):
 
 class UIReferralNode(UINode):
     ui_desc_addr = {
-        'adrfam': ('string', 'Address Family (e.g. ipv4)'),
+        'adrfam': ('string', 'Address Family (e.g. ipv4 or fc)'),
         'treq': ('string', 'Transport Security Requirements'),
-        'traddr': ('string', 'Transport Address (e.g. IP Address)'),
+        'traddr': ('string', 'Transport Address (e.g. IP Address or FC wwnn:wwpn)'),
         'trsvcid': ('string', 'Transport Service ID (e.g. IP Port)'),
-        'trtype': ('string', 'Transport Type (e.g. rdma or loop)'),
+        'trtype': ('string', 'Transport Type (e.g. rdma or loop or fc)'),
         'portid': ('number', 'Port identifier'),
     }
 
