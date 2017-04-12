@@ -290,6 +290,11 @@ class Root(CFSNode):
         else:
             savefile = DEFAULT_SAVE_FILE
 
+        savefile_abspath = os.path.abspath(savefile)
+        savefile_dir = os.path.dirname(savefile_abspath)
+        if not os.path.exists(savefile_dir):
+            os.makedirs(savefile_dir)
+
         with open(savefile + ".temp", "w+") as f:
             os.fchmod(f.fileno(), stat.S_IRUSR | stat.S_IWUSR)
             f.write(json.dumps(self.dump(), sort_keys=True, indent=2))
