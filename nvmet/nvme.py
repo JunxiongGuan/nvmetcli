@@ -219,7 +219,7 @@ class CFSNode(object):
 
     def _setup_attrs(self, attr_dict, err_func):
         for group in self.attr_groups:
-            for name, value in attr_dict.get(group, {}).iteritems():
+            for name, value in attr_dict.get(group, {}).items():
                 try:
                     self.set_attr(group, name, value)
                 except CFSError as e:
